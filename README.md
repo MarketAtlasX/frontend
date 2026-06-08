@@ -14,11 +14,25 @@ MarketAtlas is an end-to-end geopolitical intelligence and market analysis platf
 - Animated arc flows representing capital movements between major financial hubs
 - Earth-night texture with bump mapping and atmospheric glow
 - Auto-rotation with orbit controls
+- Dynamic overlay shows selected country info when a market is chosen
+
+### 🏳️ Country Explorer
+- Horizontal scrollable nav bar with 50+ countries grouped by region (Americas, Europe, Asia Pacific, Middle East & Africa)
+- Country flags rendered via Unicode regional indicators
+- Click any country to drill into its market data
+- "All Markets" quick-reset button
+
+### 🏦 Country Markets Dashboard
+- Country header with flag, stock exchange name, currency, market cap, and trading hours
+- Major indices with live price and percent change indicators (green/red)
+- 30-day mini price chart for the primary index (Recharts `LineChart`)
+- Notable ticker badges for quick reference
 
 ### 📊 Signal Dashboard
 - Real-time **BUY / HOLD / SELL** recommendation cards with confidence scores
 - Market stats: momentum (positive/negative), volatility, volume status (surge/normal/thin)
 - Geopolitical risk meter with gradient bar and severity labels
+- **Country-aware** — uses the selected country's primary ticker when a country is chosen
 
 ### 📰 Event Timeline
 - Curated feed of geopolitical events affecting financial markets
@@ -28,9 +42,10 @@ MarketAtlas is an end-to-end geopolitical intelligence and market analysis platf
 
 ### 📈 Market Analytics
 - Dual-view chart panel (Recharts):
-  - **Price Trends** — area chart for SPY/QQQ with gradient fills
+  - **Price Trends** — area chart showing the selected country's top tickers with gradient fills
   - **Sector Performance** — horizontal bar chart for Technology, Energy, Finance, and more
 - Custom tooltips with formatted price display
+- **Country-aware** — chart lines dynamically update to the selected country's ticker symbols
 
 ### 🎨 Theme Support
 - Dark mode (default) and light mode
@@ -63,20 +78,24 @@ frontend/
 │   └── favicon.svg
 ├── src/
 │   ├── api/
-│   │   └── client.ts          # Axios API client + mock fallback
+│   │   └── client.ts           # Axios API client + mock fallback
 │   ├── components/
-│   │   ├── GlobeView.tsx       # 3D globe with hexbin heatmap + arcs
-│   │   ├── Header.tsx          # Top bar with theme toggle
-│   │   ├── MarketCharts.tsx    # Recharts price/sector charts
-│   │   ├── SignalDashboard.tsx # BUY/HOLD/SELL cards + risk meter
-│   │   └── EventTimeline.tsx   # Geopolitical event feed
+│   │   ├── GlobeView.tsx        # 3D globe with hexbin heatmap + arcs
+│   │   ├── Header.tsx           # Top bar with theme toggle
+│   │   ├── CountryNav.tsx       # Horizontal country selector with region tabs
+│   │   ├── CountryMarkets.tsx   # Country-specific indices, charts, and tickers
+│   │   ├── MarketCharts.tsx     # Recharts price/sector charts (country-aware)
+│   │   ├── SignalDashboard.tsx  # BUY/HOLD/SELL cards + risk meter (country-aware)
+│   │   └── EventTimeline.tsx    # Geopolitical event feed
 │   ├── context/
-│   │   └── ThemeContext.tsx    # Dark/light theme provider
-│   ├── App.tsx                 # Main layout (globe + sidebar)
-│   ├── main.tsx                # React entry point
-│   └── index.css               # Tailwind CSS v4 imports
+│   │   └── ThemeContext.tsx     # Dark/light theme provider
+│   ├── data/
+│   │   └── countries.ts         # 50+ countries with exchange metadata and tickers
+│   ├── App.tsx                  # Main layout (country nav + globe + sidebar)
+│   ├── main.tsx                 # React entry point
+│   └── index.css                # Tailwind CSS v4 imports
 ├── index.html
-├── vite.config.ts              # Vite config with proxy
+├── vite.config.ts               # Vite config with proxy
 ├── tsconfig.json
 ├── package.json
 └── README.md
@@ -123,6 +142,8 @@ The frontend connects to the MarketAtlas backend microservices via a Vite proxy:
 | `/api/health` | `GET http://localhost:8000/health` |
 
 The API client (`src/api/client.ts`) detects backend availability with a **1-second health probe** and automatically serves realistic mock data when the backend is unreachable. No backend setup required for frontend development.
+
+The `analyze()` function also accepts an optional `symbol` parameter for country-specific ticker data — when a country is selected in the Country Explorer, the dashboard passes that country's primary ticker to generate contextual mock data.
 
 ---
 
