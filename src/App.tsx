@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import Header from './components/Header'
 import GlobeView from './components/GlobeView'
+import CountryNav from './components/CountryNav'
+import CountryMarkets from './components/CountryMarkets'
 import SignalDashboard from './components/SignalDashboard'
 import EventTimeline from './components/EventTimeline'
 import MarketCharts from './components/MarketCharts'
+import type { Country } from './data/countries'
 
 export default function App() {
   return (
