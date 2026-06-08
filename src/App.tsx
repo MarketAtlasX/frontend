@@ -29,10 +29,16 @@ export default function App() {
           {/* Overlay label */}
           <div className="absolute top-4 left-4 z-10">
             <h2 className="text-sm font-semibold dark:text-white/80 text-gray-900/80 drop-shadow-lg">
-              Global Market Heatmap
+              {selectedCountry
+                ? `${selectedCountry.name} Market Overview`
+                : 'Global Market Heatmap'
+              }
             </h2>
             <p className="text-[10px] dark:text-white/50 text-gray-600/80 drop-shadow">
-              Real-time geopolitical sentiment by region
+              {selectedCountry
+                ? `${selectedCountry.stockExchange || 'Stock Market'} - ${selectedCountry.currency} (${selectedCountry.currencySymbol})`
+                : 'Real-time geopolitical sentiment by region'
+              }
             </p>
           </div>
         </section>
