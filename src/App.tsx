@@ -9,9 +9,16 @@ import MarketCharts from './components/MarketCharts'
 import type { Country } from './data/countries'
 
 export default function App() {
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
+
   return (
     <div className="h-screen w-screen flex flex-col dark:bg-gray-950 bg-gray-50 dark:text-white text-gray-900 overflow-hidden">
       <Header />
+
+      <CountryNav
+        selectedCountry={selectedCountry}
+        onSelect={setSelectedCountry}
+      />
 
       <main className="flex-1 flex overflow-hidden">
         {/* Left Panel - Globe */}
