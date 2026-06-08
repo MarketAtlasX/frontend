@@ -45,12 +45,18 @@ export default function App() {
 
         {/* Right Panel */}
         <aside className="w-96 border-l dark:border-white/10 border-gray-200 flex flex-col dark:bg-gray-950/80 bg-white/80 backdrop-blur-sm overflow-y-auto">
+          {selectedCountry && (
+            <div className="p-4 border-b dark:border-white/10 border-gray-200">
+              <CountryMarkets country={selectedCountry} />
+            </div>
+          )}
+
           {/* Signals */}
           <div className="p-4 border-b dark:border-white/10 border-gray-200">
             <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
               Signal Dashboard
             </h3>
-            <SignalDashboard />
+            <SignalDashboard country={selectedCountry} />
           </div>
 
           {/* Event Timeline */}
@@ -66,7 +72,7 @@ export default function App() {
             <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
               Market Analytics
             </h3>
-            <MarketCharts />
+            <MarketCharts country={selectedCountry} />
           </div>
         </aside>
       </main>
