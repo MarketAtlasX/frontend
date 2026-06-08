@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid, Cell,
 } from 'recharts'
+import type { Country } from '../data/countries'
 
-const priceData = Array.from({ length: 30 }, (_, i) => ({
-  day: `D${i + 1}`,
-  SPY: 450 + Math.sin(i * 0.3) * 15 + Math.random() * 8,
-  QQQ: 380 + Math.cos(i * 0.25) * 12 + Math.random() * 6,
-  VIX: 18 + Math.sin(i * 0.4) * 5 + Math.random() * 3,
-}))
+function rand(min: number, max: number) { return min + Math.random() * (max - min) }
+
+interface Props {
+  country?: Country | null
+}
 
 const sectorData = [
   { sector: 'Technology', change: 3.2 },
@@ -36,8 +36,21 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export default function MarketCharts() {
+export default function MarketCharts({ country }: Props) {
   const [chartView, setChartView] = useState<'prices' | 'sectors'>('prices')
+
+  const priceData = useMemo(() => {
+    const base = country?.tickers?.[0] ? 100 + (country.tickers[0].charCodeAt(0) % 50) : 450
+    return Array.from({ length: 30 }, (_, i) => ({
+      day: `D${i + 1}`,
+      [country?.tickers?.[0] || 'SPY']: base + Math.sin(i * 0.3) * 15 + rand(-8, 8),
+      [country?.tickers?.[1] || 'QQQ']: base * 0.85 + Math.cos(i * 0.25) * 12 + rand(-6, 6),
+      VIX: 18 + Math.sin(i * 0.4) * 5 + rand(-3, 3),
+    }))
+  }, [country])
+
+  const line1 = country?.tickers?.[0] || 'SPY'
+  const line2 = country?.tickers?.[1] || 'QQQ'
 
   return (
     <div>
@@ -80,8 +93,8 @@ export default function MarketCharts() {
             <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="SPY" stroke="#00d4ff" fill="url(#spyGrad)" strokeWidth={2} />
-            <Area type="monotone" dataKey="QQQ" stroke="#7b2ff7" fill="url(#qqqGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey={line1} stroke="#00d4ff" fill="url(#spyGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey={line2} stroke="#7b2ff7" fill="url(#qqqGrad)" strokeWidth={2} />
           </AreaChart>
         ) : (
           <BarChart data={sectorData} layout="vertical">
