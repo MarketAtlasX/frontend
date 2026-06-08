@@ -64,8 +64,8 @@ const stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'JPM', 'V', 'NVDA', 'ME
 
 function rand(min: number, max: number) { return +(min + Math.random() * (max - min)).toFixed(4) }
 
-function generateMockData(): AnalysisResult {
-  const symbol = stocks[Math.floor(Math.random() * stocks.length)]
+function generateMockData(symbol?: string): AnalysisResult {
+  if (!symbol) symbol = stocks[Math.floor(Math.random() * stocks.length)]
   return {
     snapshot: {
       symbol,
@@ -90,15 +90,16 @@ function generateMockData(): AnalysisResult {
   }
 }
 
-export async function analyze(text: string): Promise<AnalysisResult> {
+export async function analyze(text: string, symbol?: string): Promise<AnalysisResult> {
   const online = await checkBackend()
-  if (!online) return generateMockData()
+  if (!online) return generateMockData(symbol)
   try {
     const { data } = await api.post<AnalysisResult>('/analyze', { text })
+    if (symbol) data.snapshot.symbol = symbol
     return data
   } catch {
     backendAvailable = false
-    return generateMockData()
+    return generateMockData(symbol)
   }
 }
 
