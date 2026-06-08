@@ -126,23 +126,6 @@ The API client (`src/api/client.ts`) detects backend availability with a **1-sec
 
 ---
 
-## Commit History
-
-| # | Commit | Description |
-|---|--------|-------------|
-| 1 | `fbcff7c` | Project scaffold (Vite + React + TS + Tailwind) |
-| 2 | `9678302` | Tailwind CSS config + dark/light ThemeContext |
-| 3 | `8a6a2d3` | React entry point |
-| 4 | `14bb0c7` | Header with branding + theme toggle |
-| 5 | `ae1d642` | 3D Globe.gl hexbin population heatmap + arcs |
-| 6 | `edb5dfc` | Signal dashboard (BUY/HOLD/SELL cards) |
-| 7 | `3381245` | Geopolitical event timeline |
-| 8 | `b5f1e88` | Recharts market analytics |
-| 9 | `ef0c010` | API client with health detection + mock fallback |
-| 10 | `b37084d` | Main dashboard layout |
-
----
-
 ## License
 
 MIT
