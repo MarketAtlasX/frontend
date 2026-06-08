@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, ShieldCheck, BarChart3 } from 'lucide-react'
 import type { AnalysisResult } from '../api/client'
 import { analyze } from '../api/client'
+import type { Country } from '../data/countries'
 
 const impactLabels = ['Very Low', 'Low', 'Moderate', 'High', 'Critical']
 
@@ -9,21 +10,26 @@ function getImpactLabel(risk: number) {
   return impactLabels[Math.min(Math.floor(risk * 5), 4)]
 }
 
-export default function SignalDashboard() {
+interface Props {
+  country?: Country | null
+}
+
+export default function SignalDashboard({ country }: Props) {
   const [data, setData] = useState<AnalysisResult | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      const result = await analyze('Market sentiment analysis')
+      const symbol = country?.tickers?.[0] || 'SPY'
+      const result = await analyze(`Market sentiment analysis for ${country?.name || 'global'} market`, symbol)
       setData(result)
       setLoading(false)
     }
     fetchData()
     const interval = setInterval(fetchData, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [country])
 
   if (loading || !data) {
     return (
