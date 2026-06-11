@@ -94,7 +94,7 @@ export default function App() {
             <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
               Event Timeline
             </h3>
-            <EventTimeline />
+            <EventTimeline country={selectedCountry} />
           </div>
 
           {/* Market Charts */}

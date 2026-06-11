@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { Clock, AlertTriangle, TrendingUp, Globe } from 'lucide-react'
+import type { Country } from '../data/countries'
 
 type EventType = 'positive' | 'negative' | 'neutral'
 
@@ -8,17 +10,20 @@ interface EventItem {
   desc: string
   type: EventType
   region: string
+  countryCode: string
 }
 
-const events: EventItem[] = [
-  { time: '2m ago', title: 'US Fed Signals Rate Cut', desc: 'Federal Reserve hints at dovish stance amid slowing inflation.', type: 'positive', region: 'US' },
-  { time: '15m ago', title: 'Russia Energy Sanctions Escalate', desc: 'New EU sanctions target Russian oil exports, supply concerns rise.', type: 'negative', region: 'EU' },
-  { time: '1h ago', title: 'China Tech Sector Rally', desc: 'Hang Seng Tech index surges 4% on regulatory easing expectations.', type: 'positive', region: 'CN' },
-  { time: '2h ago', title: 'Middle East Tensions Rise', desc: 'Geopolitical risks spike after military escalation in the region.', type: 'negative', region: 'ME' },
-  { time: '3h ago', title: 'India GDP Growth Beats Estimates', desc: 'Q3 GDP expands 7.2%, driven by manufacturing and services.', type: 'positive', region: 'IN' },
-  { time: '5h ago', title: 'Oil Prices Volatile', desc: 'Brent crude swings 3% amid conflicting supply signals from OPEC+.', type: 'neutral', region: 'Global' },
-  { time: '6h ago', title: 'European Markets Mixed', desc: 'Stoxx 600 fluctuates as investors weigh earnings against ECB outlook.', type: 'neutral', region: 'EU' },
-  { time: '8h ago', title: 'Japan Nikkei Hits 5-Year High', desc: 'BoJ maintains accommodative stance, weakening yen boosts exports.', type: 'positive', region: 'JP' },
+const allEvents: EventItem[] = [
+  { time: '2m ago', title: 'US Fed Signals Rate Cut', desc: 'Federal Reserve hints at dovish stance amid slowing inflation.', type: 'positive', region: 'US', countryCode: 'US' },
+  { time: '15m ago', title: 'Russia Energy Sanctions Escalate', desc: 'New EU sanctions target Russian oil exports, supply concerns rise.', type: 'negative', region: 'EU', countryCode: 'RU' },
+  { time: '1h ago', title: 'China Tech Sector Rally', desc: 'Hang Seng Tech index surges 4% on regulatory easing expectations.', type: 'positive', region: 'CN', countryCode: 'CN' },
+  { time: '2h ago', title: 'Middle East Tensions Rise', desc: 'Geopolitical risks spike after military escalation in the region.', type: 'negative', region: 'ME', countryCode: 'IR' },
+  { time: '3h ago', title: 'India GDP Growth Beats Estimates', desc: 'Q3 GDP expands 7.2%, driven by manufacturing and services.', type: 'positive', region: 'IN', countryCode: 'IN' },
+  { time: '5h ago', title: 'Oil Prices Volatile', desc: 'Brent crude swings 3% amid conflicting supply signals from OPEC+.', type: 'neutral', region: 'Global', countryCode: 'SA' },
+  { time: '6h ago', title: 'European Markets Mixed', desc: 'Stoxx 600 fluctuates as investors weigh earnings against ECB outlook.', type: 'neutral', region: 'EU', countryCode: 'DE' },
+  { time: '8h ago', title: 'Japan Nikkei Hits 5-Year High', desc: 'BoJ maintains accommodative stance, weakening yen boosts exports.', type: 'positive', region: 'JP', countryCode: 'JP' },
+  { time: '12h ago', title: 'UK Inflation Drops Below Target', desc: 'BoE considers rate cuts as CPI falls to 1.8%.', type: 'positive', region: 'GB', countryCode: 'GB' },
+  { time: '1d ago', title: 'Brazil Central Bank Holds Rates', desc: 'Selic rate maintained at 13.75% amid fiscal uncertainty.', type: 'neutral', region: 'BR', countryCode: 'BR' },
 ]
 
 const typeStyles: Record<EventType, string> = {
@@ -41,9 +46,24 @@ const regionColors: Record<string, string> = {
   IN: 'bg-orange-500/20 text-orange-400',
   Global: 'bg-cyan-500/20 text-cyan-400',
   JP: 'bg-pink-500/20 text-pink-400',
+  GB: 'bg-blue-500/20 text-blue-400',
+  BR: 'bg-green-500/20 text-green-400',
+  RU: 'bg-red-500/20 text-red-400',
+  IR: 'bg-orange-500/20 text-orange-400',
+  SA: 'bg-yellow-500/20 text-yellow-400',
+  DE: 'bg-purple-500/20 text-purple-400',
 }
 
-export default function EventTimeline() {
+interface EventTimelineProps {
+  country?: Country | null
+}
+
+export default function EventTimeline({ country }: EventTimelineProps) {
+  const events = useMemo(() => {
+    if (!country) return allEvents.slice(0, 5)
+    const countryRelated = allEvents.filter(e => e.countryCode === country.code)
+    return countryRelated.length > 0 ? countryRelated : allEvents.slice(0, 3)
+  }, [country])
   return (
     <div className="space-y-2">
       {events.map((event, i) => {
