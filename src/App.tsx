@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Header from './components/Header'
 import GlobeView from './components/GlobeView'
+import MapView from './components/MapView'
 import CountryNav from './components/CountryNav'
 import CountryMarkets from './components/CountryMarkets'
 import SignalDashboard from './components/SignalDashboard'
@@ -10,6 +11,24 @@ import type { Country } from './data/countries'
 
 export default function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
+  const [showMapView, setShowMapView] = useState(false)
+
+  const handleCountryClick = (country: Country) => {
+    setSelectedCountry(country)
+  }
+
+  const handleOpenMap = () => {
+    setShowMapView(true)
+  }
+
+  const handleBackToGlobe = () => {
+    setShowMapView(false)
+  }
+
+  const handleNavSelect = (country: Country | null) => {
+    setSelectedCountry(country)
+    if (showMapView) setShowMapView(false)
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col dark:bg-gray-950 bg-gray-50 dark:text-white text-gray-900 overflow-hidden">
@@ -17,30 +36,41 @@ export default function App() {
 
       <CountryNav
         selectedCountry={selectedCountry}
-        onSelect={setSelectedCountry}
+        onSelect={handleNavSelect}
       />
 
       <main className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Globe */}
+        {/* Left Panel - Globe or Map View */}
         <section className="flex-1 relative min-w-0">
-          <div className="absolute inset-0">
-            <GlobeView />
-          </div>
-          {/* Overlay label */}
-          <div className="absolute top-4 left-4 z-10">
-            <h2 className="text-sm font-semibold dark:text-white/80 text-gray-900/80 drop-shadow-lg">
-              {selectedCountry
-                ? `${selectedCountry.name} Market Overview`
-                : 'Global Market Heatmap'
-              }
-            </h2>
-            <p className="text-[10px] dark:text-white/50 text-gray-600/80 drop-shadow">
-              {selectedCountry
-                ? `${selectedCountry.stockExchange || 'Stock Market'} - ${selectedCountry.currency} (${selectedCountry.currencySymbol})`
-                : 'Real-time geopolitical sentiment by region'
-              }
-            </p>
-          </div>
+          {showMapView && selectedCountry ? (
+            <MapView country={selectedCountry} onBack={handleBackToGlobe} />
+          ) : (
+            <div className="absolute inset-0">
+              <GlobeView
+                selectedCountry={selectedCountry}
+                onCountryClick={handleCountryClick}
+                onOpenMap={handleOpenMap}
+              />
+            </div>
+          )}
+
+          {/* Overlay label (only in globe mode) */}
+          {!showMapView && (
+            <div className="absolute top-4 left-4 z-10 pointer-events-none">
+              <h2 className="text-sm font-semibold dark:text-white/80 text-gray-900/80 drop-shadow-lg">
+                {selectedCountry
+                  ? `${selectedCountry.name} Market Overview`
+                  : 'Global Market Heatmap'
+                }
+              </h2>
+              <p className="text-[10px] dark:text-white/50 text-gray-600/80 drop-shadow">
+                {selectedCountry
+                  ? `${selectedCountry.stockExchange || 'Stock Market'} - ${selectedCountry.currency} (${selectedCountry.currencySymbol})`
+                  : 'Click a country on the globe to explore'
+                }
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Right Panel */}
