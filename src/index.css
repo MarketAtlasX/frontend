@@ -21,6 +21,18 @@ body {
   outline: none;
 }
 
+/* Leaflet dark mode overrides */
+.dark .leaflet-container {
+  background: #1a1a2e;
+}
+.dark .leaflet-popup-content-wrapper {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+.dark .leaflet-popup-tip {
+  background: #1e1e2e;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
