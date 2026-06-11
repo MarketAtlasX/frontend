@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid, Cell,
@@ -38,6 +38,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function MarketCharts({ country }: Props) {
   const [chartView, setChartView] = useState<'prices' | 'sectors'>('prices')
+  const [transition, setTransition] = useState(false)
+
+  useEffect(() => {
+    setTransition(true)
+    const t = setTimeout(() => setTransition(false), 300)
+    return () => clearTimeout(t)
+  }, [country])
 
   const priceData = useMemo(() => {
     const base = country?.tickers?.[0] ? 100 + (country.tickers[0].charCodeAt(0) % 50) : 450
@@ -53,7 +60,7 @@ export default function MarketCharts({ country }: Props) {
   const line2 = country?.tickers?.[1] || 'QQQ'
 
   return (
-    <div>
+    <div className={`transition-opacity duration-300 ${transition ? 'opacity-50' : 'opacity-100'}`}>
       <div className="flex gap-2 mb-3">
         <button
           onClick={() => setChartView('prices')}
