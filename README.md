@@ -18,9 +18,19 @@ MarketAtlas is an end-to-end geopolitical intelligence and market analysis platf
 
 ### 🏳️ Country Explorer
 - Horizontal scrollable nav bar with 50+ countries grouped by region (Americas, Europe, Asia Pacific, Middle East & Africa)
+- Search input to quickly filter countries by name or code
 - Country flags rendered via Unicode regional indicators
 - Click any country to drill into its market data
 - "All Markets" quick-reset button
+
+### 🗺️ Interactive Country Maps
+- Click a country on the 3D globe to open a full-screen interactive Leaflet map of that country
+- Adaptive zoom levels based on country size (4 for large, 5 for medium, 9 for small countries)
+- **Port markers** — color-coded and sized by volume (major/medium/minor) with tooltips
+- **Trade route arcs** — dashed directional arcs from the country center toward trade partners with export/import value tooltips
+- **Trade partner markers** — cyan markers at partner country coordinates with name tooltips
+- Dark-mode aware tile layers (Stadia Maps dark tiles in dark mode, OpenStreetMap in light mode)
+- Escape key to return to globe view
 
 ### 🏦 Country Markets Dashboard
 - Country header with flag, stock exchange name, currency, market cap, and trading hours
@@ -63,6 +73,7 @@ MarketAtlas is an end-to-end geopolitical intelligence and market analysis platf
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
 | 3D Visualization | Globe.gl (Three.js / WebGL) |
+| Maps | Leaflet + React-Leaflet |
 | Charts | Recharts |
 | Icons | Lucide React |
 | HTTP Client | Axios |
@@ -78,11 +89,14 @@ frontend/
 │   └── favicon.svg
 ├── src/
 │   ├── api/
-│   │   └── client.ts           # Axios API client + mock fallback
+│   │   ├── client.ts           # Axios API client + mock fallback
+│   │   └── countryApi.ts       # Country/relations/ports API service
 │   ├── components/
-│   │   ├── GlobeView.tsx        # 3D globe with hexbin heatmap + arcs
+│   │   ├── GlobeView.tsx        # 3D globe with hexbin heatmap + arcs + country labels
+│   │   ├── MapView.tsx          # Country detail view (map + info panels)
+│   │   ├── CountryMap.tsx       # Leaflet interactive map with ports, trade arcs, partners
 │   │   ├── Header.tsx           # Top bar with theme toggle
-│   │   ├── CountryNav.tsx       # Horizontal country selector with region tabs
+│   │   ├── CountryNav.tsx       # Country selector with region tabs and search
 │   │   ├── CountryMarkets.tsx   # Country-specific indices, charts, and tickers
 │   │   ├── MarketCharts.tsx     # Recharts price/sector charts (country-aware)
 │   │   ├── SignalDashboard.tsx  # BUY/HOLD/SELL cards + risk meter (country-aware)
@@ -90,8 +104,11 @@ frontend/
 │   ├── context/
 │   │   └── ThemeContext.tsx     # Dark/light theme provider
 │   ├── data/
-│   │   └── countries.ts         # 50+ countries with exchange metadata and tickers
-│   ├── App.tsx                  # Main layout (country nav + globe + sidebar)
+│   │   ├── countries.ts         # 50+ countries with geo coords, commodities, ports
+│   │   └── relations.ts         # Trade routes, military relations, port locations
+│   ├── utils/
+│   │   └── geo.ts               # Haversine, bearing, destination helpers
+│   ├── App.tsx                  # App layout with map/globe view switching
 │   ├── main.tsx                 # React entry point
 │   └── index.css                # Tailwind CSS v4 imports
 ├── index.html
@@ -138,12 +155,20 @@ The frontend connects to the MarketAtlas backend microservices via a Vite proxy:
 
 | Frontend Route | Backend Target |
 |---------------|---------------|
-| `/api/analyze` | `POST http://localhost:8000/analyze` |
 | `/api/health` | `GET http://localhost:8000/health` |
+| `/api/analyze` | `POST http://localhost:8000/analyze` |
+| `/api/countries` | `GET http://localhost:8000/countries` |
+| `/api/countries/:code` | `GET http://localhost:8000/countries/:code` |
+| `/api/countries/:code/relations/trade` | `GET http://localhost:8000/countries/:code/relations/trade` |
+| `/api/countries/:code/relations/military` | `GET http://localhost:8000/countries/:code/relations/military` |
+| `/api/countries/:code/ports` | `GET http://localhost:8000/countries/:code/ports` |
 
-The API client (`src/api/client.ts`) detects backend availability with a **1-second health probe** and automatically serves realistic mock data when the backend is unreachable. No backend setup required for frontend development.
+### API Clients
 
-The `analyze()` function also accepts an optional `symbol` parameter for country-specific ticker data — when a country is selected in the Country Explorer, the dashboard passes that country's primary ticker to generate contextual mock data.
+- **`src/api/client.ts`** — Analysis endpoint (`/api/analyze`) with 1-second health probe and mock fallback. The `analyze()` function accepts an optional `symbol` parameter for country-specific ticker data.
+- **`src/api/countryApi.ts`** — Country data service providing `fetchCountries()`, `fetchCountry()`, `fetchTradeRoutes()`, `fetchMilitaryRelations()`, `fetchPorts()`. All functions check backend health and gracefully fall back to local mock data modules (`src/data/countries.ts`, `src/data/relations.ts`) when the backend is unreachable.
+
+No backend setup required for frontend development — all data falls back to realistic local datasets automatically.
 
 ---
 
