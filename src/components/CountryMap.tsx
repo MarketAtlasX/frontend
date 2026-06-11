@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip } from 'react-leaflet'
 import type { Country } from '../data/countries'
 import { countries as allCountries } from '../data/countries'
@@ -13,7 +13,7 @@ interface CountryMapProps {
   ports: PortData[]
 }
 
-export default function CountryMap({ country, tradeRoutes, ports }: CountryMapProps) {
+export default memo(function CountryMap({ country, tradeRoutes, ports }: CountryMapProps) {
   const { theme } = useTheme()
   const zoomLevel = useMemo(() => getZoomLevel(country.code), [country])
 
@@ -130,4 +130,4 @@ export default function CountryMap({ country, tradeRoutes, ports }: CountryMapPr
       })}
     </MapContainer>
   )
-}
+})
