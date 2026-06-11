@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import type { Country } from '../data/countries'
 import { flagFromCode } from '../data/countries'
 import type { TradeRoute, MilitaryRelation, PortData } from '../data/relations'
@@ -20,6 +20,15 @@ export default function MapView({ country, onBack }: MapViewProps) {
   const [militaryRelations, setMilitaryRelations] = useState<MilitaryRelation[]>([])
   const [ports, setPorts] = useState<PortData[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onBack()
+  }, [onBack])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   useEffect(() => {
     let cancelled = false
