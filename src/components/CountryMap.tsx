@@ -4,6 +4,7 @@ import type { Country } from '../data/countries'
 import { countries as allCountries } from '../data/countries'
 import type { TradeRoute, PortData } from '../data/relations'
 import { bearing, destinationPoint, getZoomLevel } from '../utils/geo'
+import { useTheme } from '../context/ThemeContext'
 import 'leaflet/dist/leaflet.css'
 
 interface CountryMapProps {
@@ -13,6 +14,7 @@ interface CountryMapProps {
 }
 
 export default function CountryMap({ country, tradeRoutes, ports }: CountryMapProps) {
+  const { theme } = useTheme()
   const zoomLevel = useMemo(() => getZoomLevel(country.code), [country])
 
   const tradeArcs = useMemo(() => {
@@ -57,7 +59,10 @@ export default function CountryMap({ country, tradeRoutes, ports }: CountryMapPr
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url={theme === 'dark'
+          ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        }
       />
 
       {tradeArcs.map((arc, i) => (
