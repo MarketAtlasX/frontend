@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import createGlobe from 'globe.gl'
+import { countries, type Country } from '../data/countries'
+import { tradeRoutes, militaryRelations, portLocations } from '../data/relations'
+import { haversineDistance } from '../utils/geo'
 
 const Globe = createGlobe as unknown as (...args: unknown[]) => any
 
-// Major world cities with approximate population (millions) for hexbin aggregation
 const cityData = [
   { lat: 31.2304, lng: 121.4737, value: 24.5, country: 'Shanghai' },
   { lat: 23.1291, lng: 113.2644, value: 18.0, country: 'Guangzhou' },
@@ -67,26 +69,48 @@ const cityData = [
   { lat: 38.9072, lng: -77.0369, value: 6.0, country: 'Washington DC' },
 ]
 
-// Arc data representing capital flows between regions
-const arcData = [
-  { startLat: 40.7128, startLng: -74.006, endLat: 51.5074, endLng: -0.1278, color: '#00d4ff' },
-  { startLat: 51.5074, startLng: -0.1278, endLat: 48.8566, endLng: 2.3522, color: '#ffaa00' },
-  { startLat: 40.7128, startLng: -74.006, endLat: 35.6762, endLng: 139.6503, color: '#00ff88' },
-  { startLat: 51.5074, startLng: -0.1278, endLat: 31.2304, endLng: 121.4737, color: '#ff4444' },
-  { startLat: 35.6762, startLng: 139.6503, endLat: 22.3193, endLng: 114.1694, color: '#00ff88' },
-  { startLat: 40.7128, startLng: -74.006, endLat: 19.076, endLng: 72.8777, color: '#7b2ff7' },
-  { startLat: 55.7558, startLng: 37.6173, endLat: 48.8566, endLng: 2.3522, color: '#ff4444' },
-  { startLat: -23.5505, startLng: -46.6333, endLat: 40.7128, endLng: -74.006, color: '#ffaa00' },
-  { startLat: -33.8688, startLng: 151.2093, endLat: 22.3193, endLng: 114.1694, color: '#00ff88' },
-  { startLat: 25.2048, startLng: 55.2708, endLat: 19.076, endLng: 72.8777, color: '#ffaa00' },
-  { startLat: 48.8566, startLng: 2.3522, endLat: 52.52, endLng: 13.405, color: '#00d4ff' },
-  { startLat: 31.2304, startLng: 121.4737, endLat: 35.6762, endLng: 139.6503, color: '#00ff88' },
-]
+interface GlobeViewProps {
+  selectedCountry: Country | null
+  onCountryClick: (country: Country) => void
+  onOpenMap: () => void
+}
 
-export default function GlobeView() {
+function findNearestCountry(lat: number, lng: number): Country | null {
+  let nearest: Country | null = null
+  let minDist = Infinity
+  for (const c of countries) {
+    const dist = haversineDistance(lat, lng, c.lat, c.lng)
+    if (dist < minDist && dist < 2000) {
+      minDist = dist
+      nearest = c
+    }
+  }
+  return nearest
+}
+
+export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
+  const mapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clickLockRef = useRef(false)
+
+  const countryLabels = countries.map(c => ({
+    lat: c.lat,
+    lng: c.lng,
+    label: c.code,
+    size: 0.5,
+    color: 'rgba(255,255,255,0.85)',
+    country: c,
+  }))
+
+  const portPoints = portLocations.map(p => ({
+    lat: p.lat,
+    lng: p.lng,
+    name: p.name,
+    radius: p.volume === 'major' ? 0.4 : 0.25,
+    color: '#00d4ff',
+  }))
 
   useEffect(() => {
     const handleResize = () => {
@@ -109,7 +133,6 @@ export default function GlobeView() {
       .backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
       .width(dimensions.width)
       .height(dimensions.height)
-      // Hexbin population layer
       .hexBinPointsData(cityData)
       .hexBinPointWeight('value')
       .hexBinResolution(4)
@@ -142,12 +165,38 @@ export default function GlobeView() {
           <b>Population Cluster</b><br/>${topCities}
         </div>`
       })
-      // Arcs overlay
-      .arcsData(arcData)
+      // Country labels
+      .labelsData(countryLabels)
+      .labelLat('lat')
+      .labelLng('lng')
+      .labelText('label')
+      .labelSize('size')
+      .labelColor('color')
+      .labelDotRadius(0.2)
+      .labelDotOrientation('bottom')
+      // Port points
+      .pointsData(portPoints)
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointColor('color')
+      .pointAltitude(0.05)
+      .pointRadius('radius')
+      .pointsMerge(true)
+      // Trade route arcs
+      .arcsData(tradeRoutes.map(r => ({
+        startLat: r.fromLat, startLng: r.fromLng,
+        endLat: r.toLat, endLng: r.toLng,
+        color: r.color, type: 'trade',
+      })).concat(militaryRelations.map(r => ({
+        startLat: r.fromLat, startLng: r.fromLng,
+        endLat: r.toLat, endLng: r.toLng,
+        color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
+        type: r.type,
+      }))))
       .arcColor('color')
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(3000)
+      .arcDashLength(0.3)
+      .arcDashGap(0.15)
+      .arcDashAnimateTime(2500)
       .arcStroke(0.5)
       // Atmosphere
       .atmosphereColor('#7b2ff7')
@@ -158,13 +207,117 @@ export default function GlobeView() {
 
     globe.controls().autoRotate = true
     globe.controls().autoRotateSpeed = 0.6
+    globe.controls().enableZoom = true
+
+    globe.onGlobeClick(({ lat: clickLat, lng: clickLng }: { lat: number; lng: number }) => {
+      if (clickLockRef.current) return
+      clickLockRef.current = true
+
+      const country = findNearestCountry(clickLat, clickLng)
+      if (!country) {
+        clickLockRef.current = false
+        return
+      }
+
+      onCountryClick(country)
+
+      globe.controls().autoRotate = false
+      globe.controls().autoRotateSpeed = 0
+
+      globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.5 }, 1000)
+
+      if (mapTimerRef.current) clearTimeout(mapTimerRef.current)
+      mapTimerRef.current = setTimeout(() => {
+        onOpenMap()
+        clickLockRef.current = false
+      }, 800)
+    })
 
     return () => {
+      if (mapTimerRef.current) clearTimeout(mapTimerRef.current)
       if (globeRef.current) {
         globeRef.current._destructor?.()
       }
     }
   }, [dimensions])
+
+  // Update data layers when selectedCountry changes
+  useEffect(() => {
+    const globe = globeRef.current
+    if (!globe) return
+
+    if (selectedCountry) {
+      const relatedTrade = tradeRoutes.filter(
+        r => r.from === selectedCountry.code || r.to === selectedCountry.code
+      )
+      const relatedMilitary = militaryRelations.filter(
+        r => r.countryA === selectedCountry.code || r.countryB === selectedCountry.code
+      )
+      const relPorts = portLocations.filter(p => p.countryCode === selectedCountry.code)
+
+      const allArcs = [
+        ...relatedTrade.map(r => ({
+          startLat: r.fromLat, startLng: r.fromLng,
+          endLat: r.toLat, endLng: r.toLng,
+          color: r.color, type: 'trade',
+        })),
+        ...relatedMilitary.map(r => ({
+          startLat: r.fromLat, startLng: r.fromLng,
+          endLat: r.toLat, endLng: r.toLng,
+          color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
+          type: r.type,
+        })),
+      ]
+
+      globe.arcsData(allArcs)
+      globe.arcColor('color')
+      globe.arcDashLength(0.3)
+      globe.arcDashGap(0.15)
+      globe.arcDashAnimateTime(2000)
+      globe.arcStroke(0.8)
+
+      globe.pointsData(relPorts.length > 0
+        ? relPorts.map(p => ({ lat: p.lat, lng: p.lng, name: p.name, radius: 0.5, color: '#00ff88' }))
+        : portPoints
+      )
+
+      globe.labelsData(countryLabels.map(l => ({
+        ...l,
+        color: l.country.code === selectedCountry.code ? '#ffaa00' : 'rgba(255,255,255,0.6)',
+        size: l.country.code === selectedCountry.code ? 0.8 : 0.4,
+      })))
+
+      globe.controls().autoRotate = false
+      globe.pointOfView({ lat: selectedCountry.lat, lng: selectedCountry.lng, altitude: 1.5 }, 1000)
+    } else {
+      // Reset to global view with default data
+      const allTradeArcs = tradeRoutes.map(r => ({
+        startLat: r.fromLat, startLng: r.fromLng,
+        endLat: r.toLat, endLng: r.toLng,
+        color: r.color, type: 'trade',
+      }))
+      const allMilitaryArcs = militaryRelations.map(r => ({
+        startLat: r.fromLat, startLng: r.fromLng,
+        endLat: r.toLat, endLng: r.toLng,
+        color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
+        type: r.type,
+      }))
+
+      globe.arcsData([...allTradeArcs, ...allMilitaryArcs])
+      globe.arcColor('color')
+      globe.arcDashLength(0.3)
+      globe.arcDashGap(0.15)
+      globe.arcDashAnimateTime(2500)
+      globe.arcStroke(0.5)
+
+      globe.pointsData(portPoints)
+
+      globe.labelsData(countryLabels)
+
+      globe.controls().autoRotate = true
+      globe.controls().autoRotateSpeed = 0.6
+    }
+  }, [selectedCountry])
 
   return (
     <div ref={containerRef} className="globe-container w-full h-full relative" />
