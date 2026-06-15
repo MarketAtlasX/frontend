@@ -13,11 +13,9 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => '/api/v1' + path.replace('/api', ''),
         configure: (proxy) => {
-          proxy.on('error', (err) => {
-            // Suppress proxy errors (backend may be offline)
-          })
+          proxy.on('error', () => {})
         },
       },
       '/ws': {
