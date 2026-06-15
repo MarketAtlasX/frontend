@@ -1,17 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Globe, Bot, ChevronDown, Loader2 } from 'lucide-react'
+import { Sparkles, X, Send, Globe, Bot, Loader2, Zap } from 'lucide-react'
 import type { ChatMessage, ChatResponse } from '../api/chatApi'
 import { sendChat } from '../api/chatApi'
-
-const INTENT_COLORS: Record<string, string> = {
-  NEWS: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  MARKET: 'bg-green-500/20 text-green-300 border-green-500/30',
-  IMPACT: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  RECOMMENDATION: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  SIMULATION: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
-  GRAPH: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  REPORT: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-}
 
 const SUGGESTIONS = [
   'Why is oil rising today?',
@@ -70,15 +60,9 @@ export default function ChatBot() {
 
   const formatResponse = (result: ChatResponse): string => {
     let formatted = result.response
-
-    if (result.intent === 'REPORT' && !formatted.startsWith('#')) {
-      formatted = `**Intelligence Report**\n\n${formatted}`
-    }
-
     if (result.sources?.length) {
       formatted += `\n\n*Sources: ${result.sources.join(', ')}*`
     }
-
     return formatted
   }
 
@@ -94,29 +78,59 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Floating button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-accent to-accent-2 text-white shadow-2xl hover:shadow-accent/30 hover:scale-105 transition-all duration-200 flex items-center justify-center"
-        aria-label="Toggle chat"
-      >
-        {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-      </button>
+      {/* Floating button with glow */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {/* Pulsing glow ring */}
+        <div className={`absolute -inset-3 rounded-full bg-gradient-to-br from-accent via-accent-2 to-purple-600 opacity-30 blur-xl animate-pulse transition-all duration-500 ${open ? 'scale-150 opacity-50' : ''}`} />
+        {/* Orbiting dots */}
+        <div className={`absolute -inset-6 rounded-full border border-accent/20 animate-spin-slow ${open ? 'opacity-0' : 'opacity-100'}`}
+             style={{ animationDuration: '8s' }} />
+        <div className={`absolute -inset-9 rounded-full border border-accent-2/10 animate-spin-slow ${open ? 'opacity-0' : 'opacity-100'}`}
+             style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+
+        <button
+          onClick={() => setOpen(!open)}
+          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-accent via-accent-2 to-purple-600 text-white shadow-2xl hover:shadow-accent/40 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center group cursor-pointer"
+          aria-label="Toggle chat"
+        >
+          {open ? (
+            <X className="w-7 h-7 transition-transform duration-300 rotate-0" />
+          ) : (
+            <>
+              <Sparkles className="w-6 h-6 absolute animate-ping opacity-40" style={{ animationDuration: '2s' }} />
+              <Bot className="w-7 h-7 relative z-10 group-hover:animate-bounce-sm" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-gray-950 animate-pulse" style={{ animationDuration: '1.5s' }} />
+            </>
+          )}
+        </button>
+
+        {/* Label tooltip */}
+        {!open && (
+          <div className="relative mt-1 px-3 py-1.5 rounded-full bg-gray-900/90 border border-accent/30 text-[10px] text-accent font-medium whitespace-nowrap backdrop-blur-sm animate-in fade-in">
+            <Zap className="w-3 h-3 inline mr-1 -mt-0.5" />
+            AI Intelligence Officer
+          </div>
+        )}
+      </div>
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-[420px] h-[600px] dark:bg-gray-900 bg-white rounded-2xl shadow-2xl border dark:border-white/10 border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-24 right-6 z-50 w-[440px] h-[620px] dark:bg-gray-900 bg-white rounded-2xl shadow-2xl border dark:border-white/10 border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b dark:border-white/10 border-gray-200 bg-gradient-to-r dark:from-gray-900 dark:to-gray-950 from-white to-gray-50">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent-2 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
+          <div className="relative flex items-center gap-3 px-5 py-4 border-b dark:border-white/10 border-gray-200 bg-gradient-to-r from-accent/10 via-accent-2/5 to-transparent">
+            <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent pointer-events-none" />
+            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-accent via-accent-2 to-purple-600 flex items-center justify-center shadow-lg shadow-accent/20">
+              <Bot className="w-6 h-6 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 relative">
               <h3 className="text-sm font-bold dark:text-white text-gray-900">MarketAtlas AI</h3>
               <p className="text-[10px] dark:text-gray-500 text-gray-400 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Geopolitical Intelligence Officer
               </p>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] dark:text-gray-500 text-gray-400">
+              <span className="hidden sm:inline">v1.0</span>
             </div>
           </div>
 
@@ -147,7 +161,7 @@ export default function ChatBot() {
                 }`}>
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <Globe className="w-3 h-3 text-accent" />
+                      <Bot className="w-3 h-3 text-accent" />
                       <span className="text-[9px] dark:text-gray-400 text-gray-500 font-medium">MarketAtlas AI</span>
                     </div>
                   )}
@@ -187,7 +201,7 @@ export default function ChatBot() {
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || loading}
-                className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center disabled:opacity-40 hover:bg-accent/90 transition-colors flex-shrink-0"
+                className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent to-accent-2 text-white flex items-center justify-center disabled:opacity-40 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 transition-all duration-200 flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
