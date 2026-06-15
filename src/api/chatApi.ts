@@ -13,6 +13,27 @@ export interface ChatResponse {
   sources: string[]
 }
 
+export interface IntelligenceReport {
+  title: string
+  event: string
+  affected_sectors: string[]
+  risk_score: number
+  expected_market_impact: string
+  recommended_assets: string[]
+  confidence: number
+  reasoning: string
+  sources: string[]
+  timestamp: string
+}
+
+export interface SimulationResult {
+  scenario: string
+  consequences: Record<string, string>
+  probability: number
+  time_horizon: string
+  key_risks: string[]
+}
+
 let backendAvailable: boolean | null = null
 
 async function checkBackend(): Promise<boolean> {
