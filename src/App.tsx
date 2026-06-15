@@ -7,6 +7,7 @@ import CountryMarkets from './components/CountryMarkets'
 import SignalDashboard from './components/SignalDashboard'
 import EventTimeline from './components/EventTimeline'
 import MarketCharts from './components/MarketCharts'
+import ChatBot from './components/ChatBot'
 import type { Country } from './data/countries'
 
 export default function App() {
@@ -106,6 +107,8 @@ export default function App() {
           </div>
         </aside>
       </main>
+
+      <ChatBot />
     </div>
   )
 }
