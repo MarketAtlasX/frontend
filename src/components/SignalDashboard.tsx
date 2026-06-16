@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, ShieldCheck, BarChart3 } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, ShieldCheck, BarChart3, Wifi, WifiOff } from 'lucide-react'
 import type { AnalysisResult } from '../api/client'
 import { analyze } from '../api/client'
 import type { Country } from '../data/countries'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 const impactLabels = ['Very Low', 'Low', 'Moderate', 'High', 'Critical']
 
@@ -17,6 +18,17 @@ interface Props {
 export default function SignalDashboard({ country }: Props) {
   const [data, setData] = useState<AnalysisResult | null>(null)
   const [loading, setLoading] = useState(true)
+  const [wsSignal, setWsSignal] = useState<AnalysisResult | null>(null)
+
+  const handleSignal = useCallback((msg: any) => {
+    if (msg.data) {
+      setWsSignal(msg.data as AnalysisResult)
+    }
+  }, [])
+
+  const { connected } = useWebSocket({ signal: handleSignal })
+
+  const liveData = wsSignal || data
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,7 +43,7 @@ export default function SignalDashboard({ country }: Props) {
     return () => clearInterval(interval)
   }, [country])
 
-  if (loading || !data) {
+  if (loading || !liveData) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-accent border-t-transparent" />
@@ -39,7 +51,7 @@ export default function SignalDashboard({ country }: Props) {
     )
   }
 
-  const { snapshot, impact, recommendation } = data
+  const { snapshot, impact, recommendation } = liveData
 
   const actionColors = {
     BUY: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -57,6 +69,14 @@ export default function SignalDashboard({ country }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Live indicator */}
+      <div className="flex items-center justify-end gap-1.5 -mb-2">
+        <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-yellow-500'}`} />
+        <span className="text-[10px] dark:text-gray-500 text-gray-400">
+          {connected ? 'Live' : 'Polling'}
+        </span>
+        {connected ? <Wifi className="w-3 h-3 text-green-400" /> : <WifiOff className="w-3 h-3 text-yellow-500" />}
+      </div>
       {/* Recommendation Card */}
       <div className={`rounded-xl border p-4 ${actionColors[recommendation.action]}`}>
         <div className="flex items-center gap-3 mb-2">

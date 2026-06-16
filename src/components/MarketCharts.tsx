@@ -4,6 +4,10 @@ import {
   BarChart, Bar, CartesianGrid, Cell,
 } from 'recharts'
 import type { Country } from '../data/countries'
+import { ChartSkeleton } from './Skeleton'
+import { EmptyState } from './EmptyState'
+import { fetchMarketPrices } from '../api/geopoliticalApi'
+import type { MarketPrice } from '../api/geopoliticalApi'
 
 function rand(min: number, max: number) { return min + Math.random() * (max - min) }
 
@@ -39,14 +43,37 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function MarketCharts({ country }: Props) {
   const [chartView, setChartView] = useState<'prices' | 'sectors'>('prices')
   const [transition, setTransition] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [realPrices, setRealPrices] = useState<MarketPrice[] | null>(null)
 
   useEffect(() => {
+    setLoading(true)
     setTransition(true)
-    const t = setTimeout(() => setTransition(false), 300)
+    setRealPrices(null)
+
+    if (country && country.tickers.length > 0) {
+      const entityId = country.tickers[0].charCodeAt(0) + country.tickers[0].charCodeAt(1)
+      fetchMarketPrices(entityId, 30).then((prices) => {
+        if (prices.length > 0) setRealPrices(prices)
+      }).catch(() => {})
+    }
+
+    const t = setTimeout(() => {
+      setLoading(false)
+      setTransition(false)
+    }, 300)
     return () => clearTimeout(t)
   }, [country])
 
   const priceData = useMemo(() => {
+    if (realPrices && realPrices.length > 0) {
+      return realPrices.map((p, i) => ({
+        day: `D${i + 1}`,
+        [country?.tickers?.[0] || 'SPY']: p.close,
+        [country?.tickers?.[1] || 'QQQ']: p.open,
+        VIX: 18 + Math.sin(i * 0.4) * 5 + rand(-3, 3),
+      }))
+    }
     const base = country?.tickers?.[0] ? 100 + (country.tickers[0].charCodeAt(0) % 50) : 450
     return Array.from({ length: 30 }, (_, i) => ({
       day: `D${i + 1}`,
@@ -54,10 +81,16 @@ export default function MarketCharts({ country }: Props) {
       [country?.tickers?.[1] || 'QQQ']: base * 0.85 + Math.cos(i * 0.25) * 12 + rand(-6, 6),
       VIX: 18 + Math.sin(i * 0.4) * 5 + rand(-3, 3),
     }))
-  }, [country])
+  }, [country, realPrices])
 
   const line1 = country?.tickers?.[0] || 'SPY'
   const line2 = country?.tickers?.[1] || 'QQQ'
+
+  if (loading) return <ChartSkeleton />
+
+  if (!country) {
+    return <EmptyState title="Select a country" description="Pick a country to view market analytics." />
+  }
 
   return (
     <div className={`transition-opacity duration-300 ${transition ? 'opacity-50' : 'opacity-100'}`}>

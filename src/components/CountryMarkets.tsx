@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip,
 } from 'recharts'
 import { TrendingUp, TrendingDown, BarChart3, DollarSign, Clock, Building2 } from 'lucide-react'
 import { flagFromCode, type Country } from '../data/countries'
+import { Skeleton } from './Skeleton'
+import { fetchLatestPrice, fetchMarketPrices } from '../api/geopoliticalApi'
+import type { MarketPrice } from '../api/geopoliticalApi'
 
 interface Props {
   country: Country
@@ -75,17 +78,79 @@ function getIndices(countryCode: string) {
 }
 
 export default function CountryMarkets({ country }: Props) {
-  const indices = useMemo(() => getIndices(country.code).map(i => ({
-    ...i,
-    value: i.value + rand(-10, 10),
-    change: i.change + rand(-0.3, 0.3),
-  })), [country.code])
+  const [loading, setLoading] = useState(true)
+  const [realPrices, setRealPrices] = useState<MarketPrice[] | null>(null)
+  const [realLatest, setRealLatest] = useState<MarketPrice | null>(null)
 
-  const chartData = useMemo(() =>
-    Array.from({ length: 30 }, (_, i) => ({
+  useEffect(() => {
+    setLoading(true)
+    setRealPrices(null)
+    setRealLatest(null)
+
+    const entityId = country.tickers.length > 0 ? country.tickers[0].charCodeAt(0) + country.tickers[0].charCodeAt(1) : 0
+    if (entityId > 0) {
+      fetchLatestPrice(entityId).then((price) => {
+        if (price) setRealLatest(price)
+      }).catch(() => {})
+      fetchMarketPrices(entityId, 30).then((prices) => {
+        if (prices.length > 0) setRealPrices(prices)
+      }).catch(() => {})
+    }
+
+    const t = setTimeout(() => setLoading(false), 300)
+    return () => clearTimeout(t)
+  }, [country.code])
+
+  const indices = useMemo(() => {
+    const base = getIndices(country.code).map(i => ({
+      ...i,
+      value: i.value + rand(-10, 10),
+      change: i.change + rand(-0.3, 0.3),
+    }))
+    if (realLatest && base.length > 0) {
+      base[0] = { ...base[0], value: realLatest.close, change: ((realLatest.close - realLatest.open) / realLatest.open) * 100 }
+    }
+    return base
+  }, [country.code, realLatest])
+
+  const chartData = useMemo(() => {
+    if (realPrices && realPrices.length > 0) {
+      return realPrices.map((p, i) => ({
+        day: `D${i + 1}`,
+        value: p.close,
+      }))
+    }
+    return Array.from({ length: 30 }, (_, i) => ({
       day: `D${i + 1}`,
       value: indices[0].value * (1 + Math.sin(i * 0.2) * 0.02 + (Math.random() - 0.5) * 0.01),
-    })), [country.code])
+    }))
+  }, [country.code, realPrices, indices])
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b dark:border-white/10 border-gray-200">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="dark:bg-white/5 bg-gray-100 rounded-xl p-2.5 border dark:border-white/10 border-gray-200">
+              <Skeleton className="h-3 w-12 mb-2" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-3 w-24 mb-2" />
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-10 w-full rounded-lg" />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

@@ -1,10 +1,14 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Clock, AlertTriangle, TrendingUp, Globe } from 'lucide-react'
 import type { Country } from '../data/countries'
+import { TimelineSkeleton } from './Skeleton'
+import { EmptyState } from './EmptyState'
+import { fetchEvents } from '../api/geopoliticalApi'
+import type { EventItem as ApiEventItem } from '../api/geopoliticalApi'
 
 type EventType = 'positive' | 'negative' | 'neutral'
 
-interface EventItem {
+interface DisplayEvent {
   time: string
   title: string
   desc: string
@@ -13,7 +17,7 @@ interface EventItem {
   countryCode: string
 }
 
-const allEvents: EventItem[] = [
+const fallbackEvents: DisplayEvent[] = [
   { time: '2m ago', title: 'US Fed Signals Rate Cut', desc: 'Federal Reserve hints at dovish stance amid slowing inflation.', type: 'positive', region: 'US', countryCode: 'US' },
   { time: '15m ago', title: 'Russia Energy Sanctions Escalate', desc: 'New EU sanctions target Russian oil exports, supply concerns rise.', type: 'negative', region: 'EU', countryCode: 'RU' },
   { time: '1h ago', title: 'China Tech Sector Rally', desc: 'Hang Seng Tech index surges 4% on regulatory easing expectations.', type: 'positive', region: 'CN', countryCode: 'CN' },
@@ -25,6 +29,27 @@ const allEvents: EventItem[] = [
   { time: '12h ago', title: 'UK Inflation Drops Below Target', desc: 'BoE considers rate cuts as CPI falls to 1.8%.', type: 'positive', region: 'GB', countryCode: 'GB' },
   { time: '1d ago', title: 'Brazil Central Bank Holds Rates', desc: 'Selic rate maintained at 13.75% amid fiscal uncertainty.', type: 'neutral', region: 'BR', countryCode: 'BR' },
 ]
+
+function mapApiEventToDisplay(apiEvent: ApiEventItem): DisplayEvent {
+  const text = `${apiEvent.title} ${apiEvent.description}`.toLowerCase()
+  let type: EventType = 'neutral'
+  if (/positive|rally|surge|growth|beat|gain|rise|high|strong|up/.test(text)) type = 'positive'
+  else if (/negative|sanctions|tensions|escalate|volatile|drop|fall|loss|risk|weak|down/.test(text)) type = 'negative'
+
+  const hoursAgo = Math.floor((Date.now() - new Date(apiEvent.event_date).getTime()) / 3600000)
+  const timeStr = hoursAgo < 1 ? `${Math.floor((Date.now() - new Date(apiEvent.event_date).getTime()) / 60000)}m ago`
+    : hoursAgo < 24 ? `${hoursAgo}h ago`
+    : `${Math.floor(hoursAgo / 24)}d ago`
+
+  return {
+    time: timeStr,
+    title: apiEvent.title,
+    desc: apiEvent.description,
+    type,
+    region: apiEvent.event_type === 'geopolitical' ? 'Global' : apiEvent.source || 'Global',
+    countryCode: 'US',
+  }
+}
 
 const typeStyles: Record<EventType, string> = {
   positive: 'border-l-green-500 bg-green-500/5',
@@ -59,11 +84,47 @@ interface EventTimelineProps {
 }
 
 export default function EventTimeline({ country }: EventTimelineProps) {
-  const events = useMemo(() => {
-    if (!country) return allEvents.slice(0, 5)
-    const countryRelated = allEvents.filter(e => e.countryCode === country.code)
-    return countryRelated.length > 0 ? countryRelated : allEvents.slice(0, 3)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [apiEvents, setApiEvents] = useState<DisplayEvent[] | null>(null)
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    setApiEvents(null)
+
+    fetchEvents({ limit: 20 })
+      .then((res) => {
+        const mapped = (res.items || []).map(mapApiEventToDisplay)
+        if (mapped.length > 0) setApiEvents(mapped)
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to load events')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [country])
+
+  const events = useMemo(() => {
+    const source = apiEvents || fallbackEvents
+    if (!country) return source.slice(0, 5)
+    const countryRelated = source.filter(e =>
+      e.title.toLowerCase().includes(country.name.toLowerCase()) ||
+      e.desc.toLowerCase().includes(country.name.toLowerCase())
+    )
+    return countryRelated.length > 0 ? countryRelated : source.slice(0, 3)
+  }, [country, apiEvents])
+
+  if (loading) return <TimelineSkeleton />
+
+  if (error) {
+    return <EmptyState title="Failed to load events" description={error} />
+  }
+
+  if (events.length === 0) {
+    return <EmptyState title="No events" description="No recent events for this country." />
+  }
+
   return (
     <div className="space-y-2">
       {events.map((event, i) => {

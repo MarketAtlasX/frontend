@@ -30,7 +30,7 @@ export function destinationPoint(lat: number, lng: number, bearingDeg: number, d
 }
 
 export function getZoomLevel(code: string): number {
-  const small = ['HK', 'SG', 'QA', 'KW', 'MU', 'IL', 'BE', 'CH', 'NL', 'DK', 'IE', 'AT', 'LB']
+  const small = ['HK', 'SG', 'QA', 'KW', 'MU', 'IL', 'BE', 'CH', 'NL', 'DK', 'IE', 'AT']
   if (small.includes(code)) return 9
   const large = ['US', 'CN', 'RU', 'CA', 'AU', 'BR', 'IN']
   if (large.includes(code)) return 4
