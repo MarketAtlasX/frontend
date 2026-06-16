@@ -1,86 +1,303 @@
-# MarketAtlas — Frontend
+# MarketAtlas - Frontend
 
-**AI-Powered Geopolitical Trading Intelligence Platform** — an interactive command center for traders, analysts, and researchers.
+**AI-Powered Geopolitical Trading Intelligence Platform**
 
-MarketAtlas transforms global political, economic, and conflict-related events into actionable trading insights. This frontend provides a 3D globe interface, country-level market dashboards, and an integrated AI chatbot powered by the MarketAtlas Chat backend.
+MarketAtlas is an interactive command center for traders, analysts, and researchers. It transforms global political, economic, and conflict-related events into actionable trading insights through a 3D globe interface, country-level market dashboards, and an integrated AI chatbot.
+
+```
+3D Globe ──click──► Country Map
+    │                      │
+    └── Right Sidebar ─────┘
+         ├── Country Markets (indices, tickers, mini chart)
+         ├── Signal Dashboard (BUY/HOLD/SELL, momentum, risk)
+         ├── Event Timeline (geopolitical events)
+         └── Market Analytics (price trends, sector performance)
+                           
+Floating ChatBot (bottom-right)
+    └── WebSocket / REST ──► MarketAtlas Backend
+```
+
+---
+
+## Quick Start
+
+```bash
+npm install
+npm run dev
+```
+
+Opens at `http://localhost:3000`. Backend at `http://localhost:8000` is optional — the frontend falls back to realistic mock data when offline.
 
 ---
 
 ## Features
 
-### 🤖 AI Chatbot (New)
-- Floating chat button in the bottom-right corner
-- Full chat panel with message history, loading states, and suggested queries
-- **6 pre-built suggested queries** for quick testing:
+### Interactive 3D Globe
+- Powered by Globe.gl (Three.js / WebGL)
+- Hexbin population heatmap of 60+ world cities with dynamic color scale
+- Animated arc flows between major financial hubs
+- Earth-night texture with bump mapping and atmospheric glow
+- Auto-rotation with orbit controls
+- Click any country to drill into its market data
+
+### Interactive Country Maps (Leaflet)
+- Click a country on the globe to open a full-screen Leaflet map
+- Port markers color-coded and sized by volume (major/medium/minor)
+- Trade route arcs with export/import value tooltips
+- Trade partner markers at partner country coordinates
+- Dark-mode aware tile layers
+- Escape to return to globe view
+
+### Country Explorer Nav Bar
+- Horizontal scrollable bar with 50+ countries grouped by region
+- Search input to quickly filter by name or code
+- Country flags rendered via Unicode regional indicators
+- Country-specific market data panels update on selection
+
+### Country Markets Dashboard
+- Country header with flag, stock exchange, currency, market cap, trading hours
+- Major indices with price and percent change
+- 30-day mini price sparkline chart
+- Notable ticker badges
+
+### Signal Dashboard
+- Real-time BUY / HOLD / SELL recommendation cards with confidence %
+- Market stats: momentum (%), volatility (%), volume status (surge/normal/thin)
+- Geopolitical risk meter with gradient bar and severity labels (Very Low through Critical)
+- Entity count and local severity metrics
+- Live/Polling indicator with WebSocket connection status
+- Refreshes every 10 seconds (via polling or WebSocket signal)
+
+### Event Timeline
+- Curated feed of geopolitical events with type-based color coding
+- Region badges with contextual coloring
+- Relative timestamps (2m ago, 15m ago, 1h ago, etc.)
+- Country-specific filtering — shows related events when a country is selected
+- Smooth skeleton loading states and empty state handling
+
+### Market Analytics
+- Dual-view chart panel: Price Trends (area chart) + Sector Performance (bar chart)
+- Powered by Recharts with dark/light theme awareness
+- Country-aware — chart lines update to the selected country's tickers
+
+### AI ChatBot
+- Floating chat button (bottom-right) with glow animation
+- Slide-in chat panel (440x620px) with message history
+- 6 pre-built suggested queries:
   - "Why is oil rising today?"
   - "What stocks benefit from a Taiwan blockade?"
   - "Simulate Russia reducing gas exports by 30%"
   - "Show latest sanctions"
   - "Should I buy energy stocks?"
   - "Generate an intelligence report"
-- **Intelligent routing** — queries are classified and sent to the right backend agents
-- **Structured responses** with intent type, agent list, and confidence score
-- **Mock fallback** — works fully offline with realistic responses when backend is unavailable
-- **WebSocket support** — ready for streaming responses when backend is connected
-- **Typed API contracts** — full TypeScript interfaces for all backend endpoint responses
-- Escape key to close chat, Enter to send
+- Structured responses with intent type, agents used, confidence score
+- Enter to send, Escape to close
+- Works fully offline with mock fallback
 
-### 🏛️ Full API Contract Layer
-- `src/api/chatApi.ts` — typed `ChatResponse`, `IntelligenceReport`, `SimulationResult` interfaces
-- `src/api/endpoints.ts` — centralized endpoint definitions and `WebSocketMessage` types
-- Auto-detects backend availability with health checks
-- Graceful degradation to mock data when offline
-
-### 🌍 Interactive 3D Globe
-- Powered by [Globe.gl](https://globe.gl) with Three.js/WebGL rendering
-- Hexbin population heatmap aggregating 60+ world cities with dynamic color scale (purple → amber by density)
-- Animated arc flows representing capital movements between major financial hubs
-- Earth-night texture with bump mapping and atmospheric glow
-- Auto-rotation with orbit controls
-- Dynamic overlay shows selected country info when a market is chosen
-
-### 🏳️ Country Explorer
-- Horizontal scrollable nav bar with 50+ countries grouped by region (Americas, Europe, Asia Pacific, Middle East & Africa)
-- Search input to quickly filter countries by name or code
-- Country flags rendered via Unicode regional indicators
-- Click any country to drill into its market data
-- "All Markets" quick-reset button
-
-### 🗺️ Interactive Country Maps
-- Click a country on the 3D globe to open a full-screen interactive Leaflet map
-- Adaptive zoom levels based on country size
-- Port markers color-coded and sized by volume (major/medium/minor)
-- Trade route arcs with export/import value tooltips
-- Trade partner markers at partner country coordinates
-- Dark-mode aware tile layers
-- Escape key to return to globe view
-
-### 🏦 Country Markets Dashboard
-- Country header with flag, stock exchange name, currency, market cap, and trading hours
-- Major indices with live price and percent change indicators
-- 30-day mini price chart for the primary index
-- Notable ticker badges for quick reference
-
-### 📊 Signal Dashboard
-- Real-time BUY / HOLD / SELL recommendation cards with confidence scores
-- Market stats: momentum, volatility, volume status
-- Geopolitical risk meter with gradient bar and severity labels
-- Country-aware — uses the selected country's primary ticker
-
-### 📰 Event Timeline
-- Curated feed of geopolitical events affecting financial markets
-- Type indicators with color-coded borders
-- Region badges with contextual coloring
-- Relative timestamps
-
-### 📈 Market Analytics
-- Dual-view chart panel: Price Trends (area chart) + Sector Performance (bar chart)
-- Country-aware — chart lines dynamically update to the selected country's tickers
-
-### 🎨 Theme Support
+### Theme Support
 - Dark mode (default) and light mode
 - Theme persisted to localStorage
-- Smooth toggle via sun/moon button in header
+- Toggle via sun/moon button in header
+- All components are theme-aware (charts, maps, panels)
+
+---
+
+## Architecture
+
+### Component Tree
+
+```
+App
+├── Header (theme toggle, title)
+├── CountryNav (country selector with search)
+├── main
+│   ├── section (left panel)
+│   │   ├── GlobeView (3D globe with hexbin + arcs)
+│   │   └── MapView / CountryMap (Leaflet map)
+│   │       └── (ports, trade routes, military relations)
+│   └── aside (right sidebar)
+│       ├── CountryMarkets (indices, tickers, mini chart)
+│       ├── SignalDashboard (BUY/HOLD/SELL, risk meter)
+│       ├── EventTimeline (event feed)
+│       └── MarketCharts (price trends + sector performance)
+└── ChatBot (floating AI assistant)
+```
+
+### Data Flow
+
+```
+User clicks country on globe
+    │
+    ▼
+App.setState({ selectedCountry })
+    │
+    ├──► CountryMarkets fetches market prices
+    ├──► SignalDashboard fetches analysis
+    ├──► EventTimeline fetches events
+    └──► MarketCharts fetches price history
+         │
+         ▼
+    Each component:
+        ├── tries backend API
+        ├── falls back to local mock data
+        └── renders result or loading/error state
+```
+
+### API Layer
+
+```
+Component
+    │
+    ▼
+API Client (chatApi.ts / countryApi.ts / geopoliticalApi.ts / client.ts)
+    │
+    ├── checkBackend() → GET /api/health
+    │       │
+    │       ├── online → real API call
+    │       └── offline → mock data
+    │
+    ├── Vite dev proxy (vite.config.ts)
+    │       │
+    │       └── rewrite: /api/* → /api/v1/*
+    │
+    └── Backend (localhost:8000)
+```
+
+### Backend Integration
+
+| Frontend Call | Backend Route | Purpose |
+|---------------|---------------|---------|
+| `POST /api/chat` | `POST /api/v1/chat` | Chat query → structured response |
+| `GET /api/health` | `GET /api/v1/health` | Backend availability check |
+| `GET /api/events?limit=` | `GET /api/v1/events` | Event timeline data |
+| `POST /api/analyze` | `POST /api/v1/analyze` | Market analysis for SignalDashboard |
+| `GET /api/countries` | `GET /api/v1/countries` | All country data |
+| `GET /api/countries/{code}` | `GET /api/v1/countries/{code}` | Single country |
+| `GET /api/countries/{code}/relations/trade` | `/api/v1/countries/{code}/relations/trade` | Trade routes |
+| `GET /api/countries/{code}/relations/military` | `/api/v1/countries/{code}/relations/military` | Military relations |
+| `GET /api/countries/{code}/ports` | `/api/v1/countries/{code}/ports` | Ports |
+| `GET /api/relations/trade` | `/api/v1/relations/trade` | All trade routes |
+| `GET /api/relations/military` | `/api/v1/relations/military` | All military relations |
+| `GET /api/ports` | `/api/v1/ports` | All port locations |
+| `GET /api/market-prices/entity/{id}/recent` | `/api/v1/market-prices/entity/{id}/recent` | Price history |
+| `GET /api/market-prices/entity/{id}/latest` | `/api/v1/market-prices/entity/{id}/latest` | Latest price |
+| `ws://localhost:3000/ws` | `ws://localhost:8000/ws` | Real-time WebSocket |
+
+---
+
+## WebSocket Protocol
+
+The frontend's `useWebSocket` hook connects to the backend and subscribes to channels:
+
+```javascript
+// Automatic on connect:
+ws.send({ type: 'subscribe', channel: 'signals' })
+ws.send({ type: 'subscribe', channel: 'events' })
+
+// Receiving messages:
+{ type: 'connected', client_id: 'uuid' }
+{ type: 'subscribed', channel: 'signals' }
+
+// SignalDashboard receives periodic analysis data:
+{
+  type: 'signal',
+  channel: 'signals',
+  data: {
+    snapshot: { symbol, momentum, volatility, volume_status },
+    impact: { composite_risk, local_severity, entity_count, relations },
+    recommendation: { action, reason, confidence }
+  },
+  timestamp: '2026-06-16T...'
+}
+```
+
+The `SignalDashboard` component uses `useWebSocket` for real-time updates and falls back to 10-second polling when WebSocket is disconnected.
+
+---
+
+## Data Files
+
+### `src/data/countries.ts`
+53 countries with: `code`, `name`, `region`, `stockExchange`, `currency`, `currencySymbol`, `marketCap`, `tradingHours`, `tickers`, `lat`, `lng`, `commodities`, `ports`. Covers: Americas, Europe, Asia Pacific, Middle East & Africa.
+
+### `src/data/relations.ts`
+- `TradeRoute[]` — 40 routes with `from`, `to`, `value`, coordinates, `color`
+- `MilitaryRelation[]` — 23 relations with `type` (alliance/rivalry/conflict/neutral), `label`, coordinates
+- `PortData[]` — 69 port locations with `countryCode`, `lat`, `lng`, `volume` (major/medium/minor)
+
+---
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── api/
+│   │   ├── chatApi.ts          # Chat query client + mock fallback
+│   │   ├── client.ts            # Market analysis API + mock fallback
+│   │   ├── countryApi.ts        # Country/relations/ports API + mock fallback
+│   │   └── geopoliticalApi.ts   # Events + market prices API
+│   ├── components/
+│   │   ├── ChatBot.tsx          # Floating AI chatbot panel
+│   │   ├── GlobeView.tsx        # 3D globe with hexbin heatmap + arcs
+│   │   ├── MapView.tsx          # Country detail container
+│   │   ├── CountryMap.tsx       # Leaflet map with ports + routes
+│   │   ├── Header.tsx           # Top bar with theme toggle
+│   │   ├── CountryNav.tsx       # Country selector bar with search
+│   │   ├── CountryMarkets.tsx   # Country indices and mini chart
+│   │   ├── MarketCharts.tsx     # Recharts price/sector charts
+│   │   ├── SignalDashboard.tsx  # Real-time BUY/HOLD/SELL + risk
+│   │   ├── EventTimeline.tsx    # Geopolitical event feed
+│   │   ├── EmptyState.tsx       # Reusable empty/error state
+│   │   ├── ErrorBoundary.tsx    # React error boundary
+│   │   └── Skeleton.tsx         # Loading skeleton components
+│   ├── hooks/
+│   │   └── useWebSocket.ts     # WebSocket with auto-reconnect
+│   ├── context/
+│   │   └── ThemeContext.tsx     # Dark/light theme provider
+│   ├── data/
+│   │   ├── countries.ts         # 53 countries dataset
+│   │   └── relations.ts         # Trade routes, military, ports
+│   ├── utils/
+│   │   └── geo.ts               # Haversine, bearing, destination
+│   ├── App.tsx                  # Main app layout and state
+│   ├── main.tsx                 # React entry with ThemeProvider
+│   └── index.css                # Tailwind + custom styles + animations
+├── vite.config.ts               # Vite dev proxy (/api → /api/v1)
+├── package.json
+├── tsconfig.json
+└── .env.example
+```
+
+---
+
+## Reusable Components
+
+| Component | Props | Purpose |
+|-----------|-------|---------|
+| `EmptyState` | `title`, `description`, `icon?`, `action?` | Consistent empty/error display |
+| `ErrorBoundary` | `children` | Catches React errors, shows fallback |
+| `Skeleton` | `variant` (timeline/dashboard) | Loading skeleton for async data |
+
+---
+
+## Offline Fallback System
+
+Every API module auto-detects backend availability:
+
+```
+checkBackend() → GET /api/health (1-2s timeout)
+    ├── 200 OK  → cache as available
+    └── error   → cache as unavailable, return mock data
+```
+
+Mock data quality:
+- **Chat API** — keyword-aware responses with proper intent routing (IMPACT, NEWS, RECOMMENDATION, SIMULATION, REPORT)
+- **Market analysis** — realistic snapshots with random momentum/volatility/volume
+- **Countries** — 53 real countries with actual coordinates, exchanges, currencies
+- **Trade routes** — 40 major global trade corridors with real values
+- **Military relations** — 23 geopolitical relationships
+- **Ports** — 69 major global ports with coordinates
 
 ---
 
@@ -96,170 +313,28 @@ MarketAtlas transforms global political, economic, and conflict-related events i
 | Maps | Leaflet + React-Leaflet |
 | Charts | Recharts |
 | Icons | Lucide React |
-| HTTP Client | Fetch API (built-in) |
-| Font | Inter (Google Fonts) |
+| HTTP | Fetch API (native) |
 
 ---
 
-## Project Structure
+## Development
 
-```
-frontend/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── api/
-│   │   ├── client.ts           # Analysis API client (legacy)
-│   │   ├── countryApi.ts       # Country/relations/ports API
-│   │   ├── chatApi.ts          # Chat API client + mock fallback
-│   │   └── endpoints.ts        # Centralized endpoint contracts
-│   ├── components/
-│   │   ├── ChatBot.tsx          # AI chatbot floating panel
-│   │   ├── GlobeView.tsx        # 3D globe with hexbin heatmap + arcs
-│   │   ├── MapView.tsx          # Country detail view
-│   │   ├── CountryMap.tsx       # Leaflet interactive map
-│   │   ├── Header.tsx           # Top bar with theme toggle
-│   │   ├── CountryNav.tsx       # Country selector with search
-│   │   ├── CountryMarkets.tsx   # Country indices and charts
-│   │   ├── MarketCharts.tsx     # Recharts price/sector charts
-│   │   ├── SignalDashboard.tsx  # BUY/HOLD/SELL recommendations
-│   │   └── EventTimeline.tsx    # Geopolitical event feed
-│   ├── context/
-│   │   └── ThemeContext.tsx     # Dark/light theme provider
-│   ├── data/
-│   │   ├── countries.ts         # 50+ countries dataset
-│   │   └── relations.ts         # Trade routes, military, ports
-│   ├── utils/
-│   │   └── geo.ts               # Haversine, bearing, destination
-│   ├── App.tsx                  # Main app layout
-│   ├── main.tsx                 # React entry point
-│   └── index.css                # Tailwind + custom styles
-├── index.html
-├── vite.config.ts               # Vite dev proxy config
-├── tsconfig.json
-└── package.json
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js >= 20
-
-### Install
 ```bash
+# Install
 npm install
-```
 
-### Development
-```bash
+# Development (port 3000)
 npm run dev
-```
-Opens on `http://localhost:3000`. The backend is optional — the frontend automatically falls back to realistic mock data when the backend is offline.
 
-### Production Build
-```bash
+# Production build
 npm run build
-```
-Output in `dist/`.
 
----
-
-## Backend Integration
-
-The frontend connects to the MarketAtlas Chat backend (`github.com/MarketAtlasX/chat-bot`) via a Vite dev proxy.
-
-### Proxy Configuration
-
-The Vite config (`vite.config.ts`) rewrites API routes:
-```
-Frontend /api/*  ──►  Backend http://localhost:8000/api/v1/*
+# Preview production build
+npm run preview
 ```
 
-### API Endpoints
+Set `VITE_API_BASE_URL` in `.env` to point to a different backend:
 
-| Frontend Call | Backend Route | Description |
-|---------------|---------------|-------------|
-| `POST /api/chat` | `POST /api/v1/chat` | Send query, receive structured response |
-| `POST /api/chat/stream` | `POST /api/v1/chat/stream` | NDJSON-streamed response chunks |
-| `GET /api/health` | `GET /api/v1/health` | Backend availability check |
-| `GET /api/history` | `GET /api/v1/history` | Past conversation history |
-| `GET /api/memory/{id}` | `GET /api/v1/memory/{id}` | Conversation memory |
-| `GET /api/knowledge/search?q=` | `GET /api/v1/knowledge/search` | RAG vector search |
-| `GET /api/graph/{entity}` | `GET /api/v1/graph/{entity}` | Knowledge graph query |
-| `ws://localhost:3000/ws` | `ws://localhost:8000/ws` | WebSocket streaming chat |
-
-### API Clients
-
-#### `src/api/chatApi.ts` — Chat Client
-- `sendChat(query)` → `Promise<ChatResponse>`
-- `ChatResponse` includes: `conversation_id`, `query`, `response`, `intent`, `agents_used`, `confidence`, `sources`
-- Also exports: `IntelligenceReport`, `SimulationResult` interfaces
-
-#### `src/api/endpoints.ts` — Contract Definitions
-- `ENDPOINTS` constant with all route definitions
-- `WebSocketMessage` typed union for WebSocket protocol
-- `API_BASE` constant for route construction
-
-#### `src/api/client.ts` — Legacy Analysis Client
-- `analyze(text, symbol?)` for market analysis
-- Falls back to `generateMockData()` when backend offline
-
-#### `src/api/countryApi.ts` — Country Data Client
-- `fetchCountries()`, `fetchCountry(code)`, `fetchTradeRoutes(code)`, etc.
-- All functions fall back to local mock data modules
-
-### WebSocket Protocol
-
-```javascript
-const ws = new WebSocket('ws://localhost:3000/ws')
-
-// Send a query
-ws.send(JSON.stringify({
-  query: 'Why is oil rising today?',
-  conversation_id: 'optional-uuid',
-  stream: true  // or false for full response
-}))
-
-// Receive messages
-ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data)
-  switch (msg.type) {
-    case 'connected':    console.log('Client ID:', msg.client_id); break
-    case 'metadata':     console.log('Intent:', msg.intent); break
-    case 'chunk':        console.log('Stream chunk:', msg.text); break
-    case 'stream_end':   console.log('Stream complete'); break
-    case 'response':     console.log('Full response:', msg.response); break
-    case 'error':        console.error('Error:', msg.message); break
-  }
-}
 ```
-
----
-
-## Mock Data System
-
-The frontend is fully functional without a backend. Every API client has a mock fallback:
-
-| Client | Mock Source | Data Quality |
-|--------|-------------|--------------|
-| `chatApi.ts` | `mockChatResponse()` | Keyword-aware responses with proper intent routing |
-| `client.ts` | `generateMockData()` | Realistic market snapshots with random variance |
-| `countryApi.ts` | `src/data/countries.ts` + `relations.ts` | 50+ countries with real geo data |
-
----
-
-## Recent Changes
-
-- **ChatBot integration** — Floating AI assistant with 6 suggested queries, message history, and loading states
-- **API contracts** — Typed `endpoints.ts` with all route definitions and `WebSocketMessage` type
-- **Chat API client** — `chatApi.ts` with backend detection, mock fallback, and `IntelligenceReport`/`SimulationResult` types
-- **Vite proxy** — Rewrites `/api/*` → `/api/v1/*` for backend route prefix alignment
-- **Chat animations** — Slide-in-from-bottom panel animation with Tailwind CSS
-
----
-
-## License
-
-MIT
+VITE_API_BASE_URL=http://localhost:8000
+```
