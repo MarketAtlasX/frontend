@@ -219,6 +219,14 @@ export default function EventEvolutionPanel({ country, onEventClick, onClose }: 
       )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex items-center gap-2 text-[8px] dark:text-gray-600 text-gray-400 px-1 pb-1 border-b dark:border-white/5 border-gray-200">
+          <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Calm</span>
+          <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Moderate</span>
+          <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Severe</span>
+          <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Critical</span>
+          <span className="ml-auto font-medium text-[7px] dark:text-gray-600 text-gray-400">legend</span>
+        </div>
+
         {timeline.current.length === 0 && timeline.historical.length === 0 && (
           <div className="text-center py-12 animate-in fade-in">
             <div className="relative mx-auto mb-3 w-12 h-12">
