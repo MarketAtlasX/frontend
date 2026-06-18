@@ -308,7 +308,7 @@ export default function GlobeView({
       dashGap: l.dashGap,
       dashAnimateTime: l.animateTime,
       stroke: Math.max(0.5, l.criticality * 0.15),
-      label: l.commodity,
+      label: `${l.commodity} — ${l.volume} — Criticality: ${l.criticality}/10`,
     }))
   }, [mode])
 
