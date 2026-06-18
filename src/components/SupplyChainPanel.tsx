@@ -52,8 +52,10 @@ function LinkRow({ link, index }: { link: SupplyChainLink; index: number }) {
 }
 
 function PathCard({ path }: { path: SupplyChainPath }) {
+  const riskBorder = path.risk >= 7 ? '#ef4444' : path.risk >= 5 ? '#f97316' : path.risk >= 3 ? '#eab308' : '#22c55e'
   return (
-    <div className="dark:bg-gray-800/30 bg-gray-50 rounded-xl border dark:border-white/10 border-gray-200 p-3 mb-3">
+    <div className="dark:bg-gray-800/30 bg-gray-50 rounded-xl border dark:border-white/10 border-gray-200 p-3 mb-3"
+      style={{ borderLeftWidth: 3, borderLeftColor: riskBorder }}>
       <div className="flex items-start justify-between mb-2">
         <div>
           <h4 className="text-xs font-semibold dark:text-white text-gray-900">{path.name}</h4>
