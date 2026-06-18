@@ -1,4 +1,4 @@
-import { Truck, AlertTriangle, DollarSign, ArrowRight, X, Shield } from 'lucide-react'
+import { Truck, AlertTriangle, DollarSign, ArrowRight, X, Shield, Loader2 } from 'lucide-react'
 import { supplyChainPaths, getSupplyChainsForCountry } from '../data/supplyChains'
 import type { SupplyChainPath, SupplyChainLink } from '../data/supplyChains'
 import type { Country } from '../data/countries'
@@ -80,6 +80,24 @@ function PathCard({ path }: { path: SupplyChainPath }) {
           <LinkRow key={link.id} link={link} index={i} />
         ))}
       </div>
+    </div>
+  )
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="p-4 space-y-3">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="animate-pulse dark:bg-gray-800/30 bg-gray-100 rounded-xl p-3">
+          <div className="h-3 dark:bg-gray-700 bg-gray-200 rounded w-2/3 mb-2" />
+          <div className="h-2 dark:bg-gray-700 bg-gray-200 rounded w-1/3 mb-3" />
+          <div className="h-1.5 dark:bg-gray-700 bg-gray-200 rounded-full mb-3" />
+          <div className="space-y-2">
+            <div className="h-8 dark:bg-gray-700/50 bg-gray-200 rounded" />
+            <div className="h-8 dark:bg-gray-700/50 bg-gray-200 rounded" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
