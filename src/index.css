@@ -87,3 +87,34 @@ body {
 .animate-in.fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* Globe mode indicator */
+@keyframes pulse-ring {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+.globe-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* Panel slide-in */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.panel-slide-in {
+  animation: slide-in-right 0.2s ease-out;
+}
+
+/* Agent mode glow */
+@keyframes agent-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.6); }
+}
+
+.agent-active {
+  animation: agent-glow 3s ease-in-out infinite;
+}
