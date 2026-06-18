@@ -1,4 +1,4 @@
-import { Truck, AlertTriangle, DollarSign, ArrowRight, X } from 'lucide-react'
+import { Truck, AlertTriangle, DollarSign, ArrowRight, X, Shield } from 'lucide-react'
 import { supplyChainPaths, getSupplyChainsForCountry } from '../data/supplyChains'
 import type { SupplyChainPath, SupplyChainLink } from '../data/supplyChains'
 import type { Country } from '../data/countries'
@@ -98,6 +98,10 @@ export default function SupplyChainPanel({ country, onClose }: SupplyChainPanelP
     )
   }
 
+  const totalPaths = paths.length
+  const avgRisk = paths.reduce((s, p) => s + p.risk, 0) / (totalPaths || 1)
+  const highestCriticality = Math.max(...paths.map(p => p.totalCriticality), 0)
+
   return (
     <div className="flex flex-col h-full">
       {onClose && (
@@ -110,6 +114,23 @@ export default function SupplyChainPanel({ country, onClose }: SupplyChainPanelP
           </button>
         </div>
       )}
+
+      <div className="grid grid-cols-3 gap-2 px-3 pt-3 pb-1">
+        <div className="dark:bg-gray-800/40 bg-gray-100 rounded-lg p-2 text-center">
+          <span className="text-lg font-bold dark:text-white text-gray-900">{totalPaths}</span>
+          <p className="text-[9px] dark:text-gray-500 text-gray-400">Paths</p>
+        </div>
+        <div className="dark:bg-gray-800/40 bg-gray-100 rounded-lg p-2 text-center">
+          <span className={`text-lg font-bold ${avgRisk >= 5 ? 'text-orange-400' : 'text-green-400'}`}>
+            {avgRisk.toFixed(1)}
+          </span>
+          <p className="text-[9px] dark:text-gray-500 text-gray-400">Avg Risk</p>
+        </div>
+        <div className="dark:bg-gray-800/40 bg-gray-100 rounded-lg p-2 text-center">
+          <span className="text-lg font-bold text-red-400">{highestCriticality}</span>
+          <p className="text-[9px] dark:text-gray-500 text-gray-400">Max Criticality</p>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {paths.map(path => (
