@@ -175,6 +175,12 @@ export default function EventEvolutionPanel({ country, onEventClick, onClose }: 
     return Math.round(score / Math.max(timeline.current.length, 1))
   }, [timeline])
 
+  const negativeCount = useMemo(() =>
+    timeline.current.filter(e => e.sentiment === 'negative').length, [timeline])
+
+  const positiveCount = useMemo(() =>
+    timeline.current.filter(e => e.sentiment === 'positive').length, [timeline])
+
   return (
     <div className="flex flex-col h-full">
       {onClose && (
@@ -183,6 +189,12 @@ export default function EventEvolutionPanel({ country, onEventClick, onClose }: 
             <History size={12} /> Event Evolution
           </h3>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 text-[9px] dark:bg-gray-800/50 bg-gray-100 rounded-full px-2 py-1">
+              <span className="dark:text-gray-400 text-gray-500">Sentiment:</span>
+              <span className="text-red-400 font-bold">{negativeCount}</span>
+              <span className="dark:text-gray-500 text-gray-400">/</span>
+              <span className="text-green-400 font-bold">{positiveCount}</span>
+            </div>
             <div className="flex items-center gap-1 text-[9px] dark:bg-gray-800/50 bg-gray-100 rounded-full px-2 py-1">
               <span className="dark:text-gray-400 text-gray-500">Impact:</span>
               <span className={totalImpact >= 7 ? 'text-red-400 font-bold' : totalImpact >= 4 ? 'text-yellow-400 font-bold' : 'text-green-400 font-bold'}>
