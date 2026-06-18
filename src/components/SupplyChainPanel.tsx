@@ -122,16 +122,21 @@ export default function SupplyChainPanel({ country, onClose }: SupplyChainPanelP
   const avgRisk = paths.reduce((s, p) => s + p.risk, 0) / (totalPaths || 1)
   const highestCriticality = Math.max(...paths.map(p => p.totalCriticality), 0)
 
+  const lastUpdated = new Date().toLocaleTimeString()
+
   return (
     <div className="flex flex-col h-full">
       {onClose && (
-        <div className="flex items-center justify-between p-3 border-b dark:border-white/10 border-gray-200">
+        <div className="flex items-center justify-between p-3 border-b dark:border-white/10 border-gray-200 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent">
           <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
             <Truck size={12} /> Supply Chains
           </h3>
-          <button onClick={onClose} className="dark:text-gray-400 text-gray-500 hover:dark:text-white hover:text-gray-700 transition-colors">
-            <X size={14} />
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] dark:text-gray-600 text-gray-400">Updated {lastUpdated}</span>
+            <button onClick={onClose} className="dark:text-gray-400 text-gray-500 hover:dark:text-white hover:text-gray-700 transition-colors">
+              <X size={14} />
+            </button>
+          </div>
         </div>
       )}
 
