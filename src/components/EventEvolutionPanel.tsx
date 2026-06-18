@@ -94,7 +94,7 @@ function EventCard({
             <div className="mt-2 pt-2 border-t dark:border-white/10 border-gray-200">
               <div className="flex items-center gap-1 text-[9px] dark:text-gray-500 text-gray-400 mb-1">
                 <ArrowRight size={9} />
-                Consequences
+                Consequences ({consequences.length})
               </div>
               <div className="flex flex-wrap gap-1">
                 {consequences.slice(0, 4).map(c => (
@@ -109,7 +109,7 @@ function EventCard({
                   </span>
                 ))}
                 {consequences.length > 4 && (
-                  <span className="text-[9px] dark:text-gray-500 text-gray-400">+{consequences.length - 4}</span>
+                  <span className="text-[9px] dark:text-gray-500 text-gray-400 font-medium">+{consequences.length - 4} more</span>
                 )}
               </div>
             </div>
