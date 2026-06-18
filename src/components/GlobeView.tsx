@@ -1,8 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import createGlobe from 'globe.gl'
 import { countries, type Country } from '../data/countries'
-import { tradeRoutes, militaryRelations, portLocations } from '../data/relations'
+import { tradeRoutes, militaryRelations, portLocations, getCountryCoord } from '../data/relations'
 import { haversineDistance } from '../utils/geo'
+import { events, historicalEvents, getSimilarEvents } from '../data/events'
+import type { GeoEvent } from '../data/events'
+import { defaultGraph } from '../data/graphData'
+import type { GraphEdge } from '../data/graphData'
+import { getAllSupplyChainLinks } from '../data/supplyChains'
+import type { SupplyChainLink } from '../data/supplyChains'
+import { worldStates, getRiskColor } from '../data/worldState'
+import { forecasts, getForecastAtDay } from '../data/forecasts'
+import type { GlobeMode, AgentMode } from './GlobeControls'
 
 const Globe = createGlobe as unknown as (...args: unknown[]) => any
 
@@ -69,10 +78,38 @@ const cityData = [
   { lat: 38.9072, lng: -77.0369, value: 6.0, country: 'Washington DC' },
 ]
 
+const financialHubs = [
+  { lat: 40.7128, lng: -74.006, name: 'New York', weight: 1 },
+  { lat: 51.5074, lng: -0.1278, name: 'London', weight: 1 },
+  { lat: 35.6762, lng: 139.6503, name: 'Tokyo', weight: 0.9 },
+  { lat: 31.2304, lng: 121.4737, name: 'Shanghai', weight: 0.9 },
+  { lat: 22.3193, lng: 114.1694, name: 'Hong Kong', weight: 0.8 },
+  { lat: 1.3521, lng: 103.8198, name: 'Singapore', weight: 0.7 },
+  { lat: 48.8566, lng: 2.3522, name: 'Paris', weight: 0.6 },
+  { lat: 25.2048, lng: 55.2708, name: 'Dubai', weight: 0.6 },
+  { lat: 19.076, lng: 72.8777, name: 'Mumbai', weight: 0.6 },
+  { lat: 55.7558, lng: 37.6173, name: 'Moscow', weight: 0.5 },
+  { lat: -33.8688, lng: 151.2093, name: 'Sydney', weight: 0.5 },
+  { lat: 37.5665, lng: 126.978, name: 'Seoul', weight: 0.5 },
+  { lat: 52.52, lng: 13.405, name: 'Berlin', weight: 0.4 },
+  { lat: -23.5505, lng: -46.6333, name: 'Sao Paulo', weight: 0.4 },
+]
+
+const typeIcons: Record<string, string> = {
+  conflict: '⚔️', economic: '📊', diplomatic: '🤝',
+  natural: '🌊', market: '💹', military: '🔴',
+}
+
 interface GlobeViewProps {
   selectedCountry: Country | null
   onCountryClick: (country: Country) => void
   onOpenMap: () => void
+  mode: GlobeMode
+  agentMode: AgentMode
+  forecastDay: number
+  selectedEvent?: GeoEvent | null
+  onEventClick?: (event: GeoEvent) => void
+  activeLayers: Record<string, boolean>
 }
 
 function findNearestCountry(lat: number, lng: number): Country | null {
@@ -88,29 +125,30 @@ function findNearestCountry(lat: number, lng: number): Country | null {
   return nearest
 }
 
-export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }: GlobeViewProps) {
+function findNearestEvent(lat: number, lng: number): GeoEvent | null {
+  let nearest: GeoEvent | null = null
+  let minDist = Infinity
+  for (const e of [...events, ...historicalEvents]) {
+    const dist = haversineDistance(lat, lng, e.lat, e.lng)
+    if (dist < minDist && dist < 1500) {
+      minDist = dist
+      nearest = e
+    }
+  }
+  return nearest
+}
+
+export default function GlobeView({
+  selectedCountry, onCountryClick, onOpenMap,
+  mode, agentMode, forecastDay, selectedEvent, onEventClick,
+  activeLayers,
+}: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const mapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const clickLockRef = useRef(false)
-
-  const countryLabels = countries.map(c => ({
-    lat: c.lat,
-    lng: c.lng,
-    label: c.code,
-    size: 0.5,
-    color: 'rgba(255,255,255,0.85)',
-    country: c,
-  }))
-
-  const portPoints = portLocations.map(p => ({
-    lat: p.lat,
-    lng: p.lng,
-    name: p.name,
-    radius: p.volume === 'major' ? 0.4 : 0.25,
-    color: '#00d4ff',
-  }))
+  const pulseRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const handleResize = () => {
@@ -124,6 +162,237 @@ export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  const buildCountryLabels = useCallback(() => {
+    if (!activeLayers.labels) return []
+    return countries.map(c => ({
+      lat: c.lat,
+      lng: c.lng,
+      label: c.code,
+      size: selectedCountry?.code === c.code ? 0.8 : 0.5,
+      color: selectedCountry?.code === c.code ? '#ffaa00' : 'rgba(255,255,255,0.85)',
+      country: c,
+    }))
+  }, [selectedCountry, activeLayers])
+
+  const buildPortPoints = useCallback(() => {
+    if (!activeLayers.ports) return []
+    return portLocations.map(p => ({
+      lat: p.lat,
+      lng: p.lng,
+      name: p.name,
+      radius: p.volume === 'major' ? 0.5 : 0.35,
+      color: p.volume === 'major' ? '#00ffdd' : '#00d4ff',
+      altitude: 0.04,
+    }))
+  }, [activeLayers])
+
+  const getEventPoints = useCallback(() => {
+    if (mode !== 'events' && mode !== 'similarity' && mode !== 'agent') return []
+
+    let sourceEvents = [...events]
+    if (mode === 'agent') {
+      const agentMapping: Record<string, string[]> = {
+        conflict: ['conflict', 'military'],
+        energy: ['economic'],
+        supplyChain: ['economic'],
+        market: ['market', 'economic'],
+      }
+      const allowedTypes = agentMapping[agentMode] || []
+      sourceEvents = events.filter(e => allowedTypes.includes(e.type))
+    }
+    if (mode === 'similarity' && selectedEvent) {
+      const similar = getSimilarEvents(selectedEvent)
+      sourceEvents = [...similar]
+    }
+
+    return sourceEvents.map(e => ({
+      lat: e.lat,
+      lng: e.lng,
+      radius: Math.max(0.3, e.severity * 0.08),
+      color: e.sentiment === 'positive' ? '#22c55e' :
+             e.sentiment === 'negative' ? '#ef4444' : '#eab308',
+      name: e.title,
+      event: e,
+      altitude: 0.02,
+    }))
+  }, [mode, agentMode, selectedEvent])
+
+  const getEventRings = useCallback(() => {
+    if (mode === 'default') {
+      return financialHubs.map(h => ({
+        lat: h.lat,
+        lng: h.lng,
+        radius: 0.8 * h.weight,
+        color: h.weight >= 0.8 ? '#7b2ff780' :
+               h.weight >= 0.6 ? '#00d4ff60' : '#7b2ff750',
+        altitude: 0.005,
+      }))
+    }
+    if (mode !== 'events' && mode !== 'similarity' && mode !== 'agent') return []
+
+    let sourceEvents = [...events]
+    if (mode === 'agent') {
+      const agentMapping: Record<string, string[]> = {
+        conflict: ['conflict', 'military'],
+        energy: ['economic'],
+        supplyChain: ['economic'],
+        market: ['market', 'economic'],
+      }
+      const allowedTypes = agentMapping[agentMode] || []
+      sourceEvents = events.filter(e => allowedTypes.includes(e.type))
+    }
+    if (mode === 'similarity' && selectedEvent) {
+      const similar = getSimilarEvents(selectedEvent)
+      sourceEvents = [...similar]
+    }
+
+    return sourceEvents.filter(e => e.sentiment === 'negative' || e.severity >= 6).map(e => ({
+      lat: e.lat,
+      lng: e.lng,
+      radius: e.severity * 0.5,
+      color: e.severity >= 7 ? '#ef444480' :
+             e.severity >= 5 ? '#f9731680' : '#eab30880',
+      altitude: 0.01,
+    }))
+  }, [mode, agentMode, selectedEvent])
+
+  const getGraphArcs = useCallback(() => {
+    if (mode !== 'graph' && mode !== 'similarity') return []
+
+    let edges: GraphEdge[] = defaultGraph.edges.slice(0, 20)
+
+    if (mode === 'similarity' && selectedEvent) {
+      const countryCode = selectedEvent.countryCode
+      edges = defaultGraph.edges.filter(
+        e => e.source === countryCode || e.target === countryCode
+      )
+    }
+
+    return edges.map(e => {
+      const source = defaultGraph.nodes.find(n => n.id === e.source)
+      const target = defaultGraph.nodes.find(n => n.id === e.target)
+      if (!source || !target) return null
+      const sourceLat = source.lat ?? getCountryCoord(source.id)?.lat
+      const sourceLng = source.lng ?? getCountryCoord(source.id)?.lng
+      const targetLat = target.lat ?? getCountryCoord(target.id)?.lat
+      const targetLng = target.lng ?? getCountryCoord(target.id)?.lng
+      if (sourceLat === undefined || sourceLng === undefined ||
+          targetLat === undefined || targetLng === undefined) return null
+      return {
+        startLat: sourceLat,
+        startLng: sourceLng,
+        endLat: targetLat,
+        endLng: targetLng,
+        color: e.type === 'affects' ? '#ff8800' :
+               e.type === 'produces' ? '#22c55e' :
+               e.type === 'depends_on' ? '#3b82f6' :
+               e.type === 'impacts' ? '#ef4444' : '#a855f7',
+        label: e.label,
+        weight: e.weight,
+      }
+    }).filter(Boolean)
+  }, [mode, selectedEvent])
+
+  const getSupplyChainArcs = useCallback(() => {
+    if (mode !== 'supplyChain') return []
+
+    const links = getAllSupplyChainLinks()
+    return links.map(l => ({
+      startLat: l.fromLat,
+      startLng: l.fromLng,
+      endLat: l.toLat,
+      endLng: l.toLng,
+      color: l.color,
+      dashLength: l.dashLength,
+      dashGap: l.dashGap,
+      dashAnimateTime: l.animateTime,
+      stroke: Math.max(0.5, l.criticality * 0.15),
+      label: l.commodity,
+    }))
+  }, [mode])
+
+  const getRiskArcs = useCallback(() => {
+    if (mode !== 'risk') return []
+    return tradeRoutes.slice(0, 15).map(r => ({
+      startLat: r.fromLat,
+      startLng: r.fromLng,
+      endLat: r.toLat,
+      endLng: r.toLng,
+      color: '#ef4444',
+      dashLength: 0.4,
+      dashGap: 0.1,
+      dashAnimateTime: 1500,
+      stroke: 1.5,
+    }))
+  }, [mode])
+
+  const getWorldStatePoints = useCallback(() => {
+    if (mode !== 'worldState') return []
+
+    return worldStates.map(ws => {
+      const riskColor = getRiskColor(ws.riskScore)
+      return {
+        lat: countries.find(c => c.code === ws.code)?.lat ?? 0,
+        lng: countries.find(c => c.code === ws.code)?.lng ?? 0,
+        radius: Math.max(0.4, ws.riskScore * 0.01),
+        color: riskColor,
+        altitude: 0.01,
+        name: ws.name,
+        riskScore: ws.riskScore,
+      }
+    }).filter(p => p.lat !== 0 || p.lng !== 0)
+  }, [mode])
+
+  const getForecastPoints = useCallback(() => {
+    if (mode !== 'forecast') return []
+
+    return worldStates.map(ws => {
+      const fc = getForecastAtDay(ws.code, forecastDay)
+      const risk = fc?.riskScore ?? ws.riskScore
+      const riskColor = getRiskColor(risk)
+      return {
+        lat: countries.find(c => c.code === ws.code)?.lat ?? 0,
+        lng: countries.find(c => c.code === ws.code)?.lng ?? 0,
+        radius: Math.max(0.4, risk * 0.012),
+        color: riskColor,
+        altitude: 0.01,
+        name: ws.name,
+        riskScore: risk,
+        forecastDay,
+      }
+    }).filter(p => p.lat !== 0 || p.lng !== 0)
+  }, [mode, forecastDay])
+
+  const getHubPoints = useCallback(() => {
+    if (mode !== 'default') return []
+    return financialHubs.map(h => ({
+      lat: h.lat,
+      lng: h.lng,
+      radius: 0.15 * h.weight,
+      color: h.weight >= 0.8 ? '#c084fc' :
+             h.weight >= 0.6 ? '#67e8f9' : '#a78bfa',
+      altitude: 0.03,
+      name: h.name,
+    }))
+  }, [mode])
+
+  const getHistoricalArcs = useCallback(() => {
+    if (mode !== 'similarity' || !selectedEvent) return []
+
+    const similar = getSimilarEvents(selectedEvent)
+    return similar.map(s => ({
+      startLat: selectedEvent.lat,
+      startLng: selectedEvent.lng,
+      endLat: s.lat,
+      endLng: s.lng,
+      color: '#a855f780',
+      dashLength: 0.2,
+      dashGap: 0.3,
+      dashAnimateTime: 4000,
+      stroke: 0.3,
+    }))
+  }, [mode, selectedEvent])
+
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -136,71 +405,41 @@ export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }
       .hexBinPointsData(cityData)
       .hexBinPointWeight('value')
       .hexBinResolution(4)
-      .hexAltitude((d: any) => d.sumWeight * 4e-3)
+      .hexAltitude((d: any) => d.sumWeight * 5e-3)
       .hexTopColor((d: any) => {
         const t = Math.min(d.sumWeight / 22, 1)
-        if (t < 0.2) return '#440088'
-        if (t < 0.4) return '#224488'
-        if (t < 0.6) return '#228844'
-        if (t < 0.8) return '#88aa22'
-        return '#ffaa00'
+        if (t < 0.2) return '#2d0066'
+        if (t < 0.4) return '#0044aa'
+        if (t < 0.6) return '#0088dd'
+        if (t < 0.8) return '#44ddaa'
+        return '#ffcc00'
       })
       .hexSideColor((d: any) => {
         const t = Math.min(d.sumWeight / 22, 1)
-        if (t < 0.2) return '#330066'
-        if (t < 0.4) return '#113366'
-        if (t < 0.6) return '#116633'
-        if (t < 0.8) return '#668822'
-        return '#cc8800'
+        if (t < 0.2) return '#1a0044'
+        if (t < 0.4) return '#003377'
+        if (t < 0.6) return '#0066aa'
+        if (t < 0.8) return '#33bb88'
+        return '#ddaa00'
       })
       .hexBinMerge(true)
       .hexLabel((d: any) => {
-        const pts = d.points as Array<{ country: string; lat: number; lng: number }>
+        const pts = d.points as Array<{ country: string; lat: number; lng: number; value?: number }>
         const topCities = pts
-          .sort((a, b) => (b as any).value - (a as any).value)
+          .sort((a, b) => (b.value || 0) - (a.value || 0))
           .slice(0, 3)
-          .map(p => `${p.country}: ${(p as any).value}M`)
+          .map(p => `${p.country}: ${p.value}M`)
           .join('<br/>')
         return `<div style="background:rgba(0,0,0,0.85);color:white;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.4">
           <b>Population Cluster</b><br/>${topCities}
         </div>`
       })
-      // Country labels
-      .labelsData(countryLabels)
-      .labelLat('lat')
-      .labelLng('lng')
-      .labelText('label')
-      .labelSize('size')
-      .labelColor('color')
-      .labelDotRadius(0.2)
-      .labelDotOrientation('bottom')
-      // Port points
-      .pointsData(portPoints)
-      .pointLat('lat')
-      .pointLng('lng')
-      .pointColor('color')
-      .pointAltitude(0.05)
-      .pointRadius('radius')
-      .pointsMerge(true)
-      // Trade route arcs
-      .arcsData(tradeRoutes.map(r => ({
-        startLat: r.fromLat, startLng: r.fromLng,
-        endLat: r.toLat, endLng: r.toLng,
-        color: r.color, type: 'trade',
-      })).concat(militaryRelations.map(r => ({
-        startLat: r.fromLat, startLng: r.fromLng,
-        endLat: r.toLat, endLng: r.toLng,
-        color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
-        type: r.type,
-      }))))
-      .arcColor('color')
-      .arcDashLength(0.3)
-      .arcDashGap(0.15)
-      .arcDashAnimateTime(2500)
-      .arcStroke(0.5)
-      // Atmosphere
+      .labelsData([])
+      .pointsData([])
+      .arcsData([])
+      .ringsData([])
       .atmosphereColor('#7b2ff7')
-      .atmosphereAltitude(0.25)
+      .atmosphereAltitude(0.35)
 
     globe(containerRef.current)
     globeRef.current = globe
@@ -213,6 +452,15 @@ export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }
       if (clickLockRef.current) return
       clickLockRef.current = true
 
+      if (mode === 'events' || mode === 'similarity' || mode === 'agent') {
+        const event = findNearestEvent(clickLat, clickLng)
+        if (event && onEventClick) {
+          onEventClick(event)
+          clickLockRef.current = false
+          return
+        }
+      }
+
       const country = findNearestCountry(clickLat, clickLng)
       if (!country) {
         clickLockRef.current = false
@@ -222,8 +470,6 @@ export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }
       onCountryClick(country)
 
       globe.controls().autoRotate = false
-      globe.controls().autoRotateSpeed = 0
-
       globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.5 }, 1000)
 
       if (mapTimerRef.current) clearTimeout(mapTimerRef.current)
@@ -235,89 +481,166 @@ export default function GlobeView({ selectedCountry, onCountryClick, onOpenMap }
 
     return () => {
       if (mapTimerRef.current) clearTimeout(mapTimerRef.current)
+      if (pulseRef.current) clearInterval(pulseRef.current)
       if (globeRef.current) {
         globeRef.current._destructor?.()
       }
     }
   }, [dimensions])
 
-  // Update data layers when selectedCountry changes
   useEffect(() => {
     const globe = globeRef.current
     if (!globe) return
 
-    if (selectedCountry) {
+    const shouldShowHex = mode === 'default' || mode === 'risk'
+
+    if (!shouldShowHex && globe.hexBinPointsData) {
+      globe.hexBinPointsData([])
+    } else if (shouldShowHex && globe.hexBinPointsData) {
+      globe.hexBinPointsData(cityData)
+      globe.hexBinPointWeight('value')
+    }
+
+    globe.labelsData(buildCountryLabels())
+    globe.labelLat('lat')
+    globe.labelLng('lng')
+    globe.labelText('label')
+    globe.labelSize('size')
+    globe.labelColor('color')
+    globe.labelDotRadius(0.2)
+    globe.labelDotOrientation('bottom')
+
+    const worldPoints = [...getWorldStatePoints(), ...getForecastPoints()]
+    if (worldPoints.length > 0) {
+      globe.pointsData(worldPoints)
+      globe.pointLat('lat')
+      globe.pointLng('lng')
+      globe.pointColor('color')
+      globe.pointAltitude('altitude')
+      globe.pointRadius('radius')
+      globe.pointsMerge(true)
+      globe.pointLabel((d: any) => {
+        return `<div style="background:rgba(0,0,0,0.85);color:white;padding:6px 10px;border-radius:6px;font-size:11px">
+          <b>${d.name}</b>${d.riskScore !== undefined ? `<br/>Risk: ${d.riskScore}/100` : ''}${d.forecastDay !== undefined ? `<br/>Forecast: +${d.forecastDay}d` : ''}
+        </div>`
+      })
+    } else {
+      const portPts = buildPortPoints()
+      const eventPts = getEventPoints()
+      const hubPts = getHubPoints()
+      globe.pointsData([...portPts, ...eventPts, ...hubPts])
+      globe.pointLat('lat')
+      globe.pointLng('lng')
+      globe.pointColor('color')
+      globe.pointAltitude((d: any) => d.altitude || 0.05)
+      globe.pointRadius((d: any) => d.radius || 0.25)
+      globe.pointsMerge(true)
+      globe.pointLabel((d: any) => {
+        if (d.event) {
+          const e = d.event as GeoEvent
+          return `<div style="background:rgba(0,0,0,0.9);color:white;padding:8px 12px;border-radius:8px;font-size:11px;max-width:220px">
+            <b>${typeIcons[e.type] || '📌'} ${e.title}</b><br/>
+            <span style="color:#aaa">Severity: ${e.severity}/10 · ${e.type}</span><br/>
+            <span style="color:#666;font-size:10px">${e.description.substring(0, 100)}...</span>
+          </div>`
+        }
+        if (d.name) {
+          return `<div style="background:rgba(0,0,0,0.85);color:white;padding:6px 10px;border-radius:6px;font-size:11px">
+            <b>${d.name}</b>
+          </div>`
+        }
+        return ''
+      })
+    }
+
+    const arcs: any[] = []
+    if (mode === 'default' || mode === 'graph' || mode === 'similarity') {
+      if (mode === 'default') {
+        arcs.push(...tradeRoutes.map(r => ({
+          startLat: r.fromLat, startLng: r.fromLng,
+          endLat: r.toLat, endLng: r.toLng,
+          color: r.color,
+          stroke: 0.6,
+          dashLength: 0.25,
+          dashGap: 0.1,
+          dashAnimateTime: 3000,
+        })))
+        arcs.push(...militaryRelations.map(r => ({
+          startLat: r.fromLat, startLng: r.fromLng,
+          endLat: r.toLat, endLng: r.toLng,
+          color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
+          stroke: 0.4,
+          dashLength: 0.2,
+          dashGap: 0.15,
+          dashAnimateTime: 4000,
+        })))
+      }
+      arcs.push(...getGraphArcs())
+      arcs.push(...getHistoricalArcs())
+    }
+    arcs.push(...getSupplyChainArcs())
+    arcs.push(...getRiskArcs())
+
+    if (selectedCountry && mode === 'default') {
       const relatedTrade = tradeRoutes.filter(
         r => r.from === selectedCountry.code || r.to === selectedCountry.code
       )
       const relatedMilitary = militaryRelations.filter(
         r => r.countryA === selectedCountry.code || r.countryB === selectedCountry.code
       )
-      const relPorts = portLocations.filter(p => p.countryCode === selectedCountry.code)
-
-      const allArcs = [
+      arcs.length = 0
+      arcs.push(
         ...relatedTrade.map(r => ({
           startLat: r.fromLat, startLng: r.fromLng,
           endLat: r.toLat, endLng: r.toLng,
-          color: r.color, type: 'trade',
+          color: r.color,
         })),
         ...relatedMilitary.map(r => ({
           startLat: r.fromLat, startLng: r.fromLng,
           endLat: r.toLat, endLng: r.toLng,
           color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
-          type: r.type,
-        })),
-      ]
-
-      globe.arcsData(allArcs)
-      globe.arcColor('color')
-      globe.arcDashLength(0.3)
-      globe.arcDashGap(0.15)
-      globe.arcDashAnimateTime(2000)
-      globe.arcStroke(0.8)
-
-      globe.pointsData(relPorts.length > 0
-        ? relPorts.map(p => ({ lat: p.lat, lng: p.lng, name: p.name, radius: 0.5, color: '#00ff88' }))
-        : portPoints
+        }))
       )
+    }
 
-      globe.labelsData(countryLabels.map(l => ({
-        ...l,
-        color: l.country.code === selectedCountry.code ? '#ffaa00' : 'rgba(255,255,255,0.6)',
-        size: l.country.code === selectedCountry.code ? 0.8 : 0.4,
-      })))
+    globe.arcsData(arcs)
+    globe.arcColor('color')
+    globe.arcStroke((d: any) => (d as any).stroke || 0.5)
 
-      globe.controls().autoRotate = false
-      globe.pointOfView({ lat: selectedCountry.lat, lng: selectedCountry.lng, altitude: 1.5 }, 1000)
+    const hasCustomDash = arcs.some((a: any) => a.dashLength !== undefined)
+    if (hasCustomDash) {
+      globe.arcDashLength((d: any) => d.dashLength || 0.3)
+      globe.arcDashGap((d: any) => d.dashGap || 0.15)
+      globe.arcDashAnimateTime((d: any) => d.dashAnimateTime || 2500)
     } else {
-      // Reset to global view with default data
-      const allTradeArcs = tradeRoutes.map(r => ({
-        startLat: r.fromLat, startLng: r.fromLng,
-        endLat: r.toLat, endLng: r.toLng,
-        color: r.color, type: 'trade',
-      }))
-      const allMilitaryArcs = militaryRelations.map(r => ({
-        startLat: r.fromLat, startLng: r.fromLng,
-        endLat: r.toLat, endLng: r.toLng,
-        color: r.type === 'alliance' ? '#44ff88' : r.type === 'rivalry' ? '#ff4444' : '#ffaa00',
-        type: r.type,
-      }))
-
-      globe.arcsData([...allTradeArcs, ...allMilitaryArcs])
-      globe.arcColor('color')
       globe.arcDashLength(0.3)
       globe.arcDashGap(0.15)
       globe.arcDashAnimateTime(2500)
-      globe.arcStroke(0.5)
+    }
 
-      globe.pointsData(portPoints)
+    const rings = getEventRings()
+    globe.ringsData(rings)
+    globe.ringLat('lat')
+    globe.ringLng('lng')
+    globe.ringMaxRadius('radius')
+    globe.ringColor('color')
+    globe.ringAltitude('altitude')
+    globe.ringPropagationSpeed(mode === 'default' ? 2 : 3)
+    globe.ringRepeatPeriod(mode === 'default' ? 3000 : 2000)
 
-      globe.labelsData(countryLabels)
-
+    if (shouldShowHex) {
       globe.controls().autoRotate = true
       globe.controls().autoRotateSpeed = 0.6
+    } else {
+      globe.controls().autoRotate = false
     }
-  }, [selectedCountry])
+  }, [
+    selectedCountry, mode, agentMode, forecastDay, selectedEvent,
+    buildCountryLabels, buildPortPoints, getEventPoints, getEventRings,
+    getGraphArcs, getSupplyChainArcs, getRiskArcs,
+    getWorldStatePoints, getForecastPoints, getHistoricalArcs,
+    getHubPoints, activeLayers,
+  ])
 
   return (
     <div ref={containerRef} className="globe-container w-full h-full relative" />
