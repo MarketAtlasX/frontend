@@ -191,9 +191,12 @@ export default function EventEvolutionPanel({ country, onEventClick, onClose }: 
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {timeline.current.length === 0 && timeline.historical.length === 0 && (
-          <div className="text-center py-8">
-            <Globe size={24} className="mx-auto mb-2 dark:text-gray-600 text-gray-400" />
+          <div className="text-center py-12 animate-in fade-in">
+            <div className="relative mx-auto mb-3 w-12 h-12">
+              <Globe size={24} className="absolute inset-0 m-auto dark:text-gray-600 text-gray-400 animate-spin-slow" style={{ animationDuration: '6s' }} />
+            </div>
             <p className="text-xs dark:text-gray-500 text-gray-400">No events for this country</p>
+            <p className="text-[9px] dark:text-gray-600 text-gray-400 mt-1">Select a different country or switch to global view</p>
           </div>
         )}
 
