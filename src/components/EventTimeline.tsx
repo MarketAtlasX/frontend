@@ -132,7 +132,7 @@ export default function EventTimeline({ country }: EventTimelineProps) {
         return (
           <div
             key={i}
-            className={`border-l-2 pl-3 py-2 rounded-r-lg ${typeStyles[event.type]} transition-colors`}
+            className={`border-l-2 pl-3 py-2 rounded-r-lg ${typeStyles[event.type]} transition-colors hover:dark:bg-white/5 hover:bg-gray-100 cursor-default`}
           >
             <div className="flex items-start gap-2">
               <Icon className="w-4 h-4 mt-0.5 shrink-0 dark:text-gray-400 text-gray-600" />
