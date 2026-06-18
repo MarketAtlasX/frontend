@@ -9,6 +9,15 @@ interface EventDetailPanelProps {
   onShowExplain: (countryCode: string) => void
 }
 
+const typeBadgeColors: Record<string, string> = {
+  conflict: 'from-red-600/40 to-red-800/20 border-red-500/30',
+  economic: 'from-amber-600/40 to-amber-800/20 border-amber-500/30',
+  diplomatic: 'from-blue-600/40 to-blue-800/20 border-blue-500/30',
+  natural: 'from-cyan-600/40 to-cyan-800/20 border-cyan-500/30',
+  market: 'from-green-600/40 to-green-800/20 border-green-500/30',
+  military: 'from-orange-600/40 to-orange-800/20 border-orange-500/30',
+}
+
 const typeIcons: Record<string, string> = {
   conflict: '🔴',
   economic: '📊',
