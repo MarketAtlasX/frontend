@@ -135,6 +135,14 @@ export default function SupplyChainPanel({ country, onClose }: SupplyChainPanelP
         </div>
       )}
 
+      {country && (
+        <div className="px-3 pt-2 pb-0">
+          <div className="flex items-center gap-1.5 text-[10px] dark:text-cyan-400 text-cyan-600 bg-cyan-500/10 rounded-lg px-2 py-1">
+            <Shield size={10} />
+            Showing paths for <span className="font-semibold">{country.name}</span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2 px-3 pt-3 pb-1">
         <div className="dark:bg-gray-800/40 bg-gray-100 rounded-lg p-2 text-center">
           <span className="text-lg font-bold dark:text-white text-gray-900">{totalPaths}</span>
