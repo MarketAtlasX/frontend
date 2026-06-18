@@ -115,7 +115,7 @@ export default function App() {
                         ? `${selectedCountry.name} Market Overview`
                         : globeMode === 'events' ? 'Real-Time Events'
                         : globeMode === 'graph' ? 'Neo4j Knowledge Graph'
-                        : globeMode === 'supplyChain' ? 'Supply Chain View'
+                        : globeMode === 'supplyChain' ? 'Global Supply Chain Network'
                         : globeMode === 'risk' ? 'Risk Propagation'
                         : globeMode === 'similarity' ? 'Event Similarity'
                         : globeMode === 'agent' ? `Agent Mode: ${agentMode}`
@@ -128,6 +128,9 @@ export default function App() {
                       {selectedCountry
                         ? `${selectedCountry.stockExchange || 'Stock Market'} - ${selectedCountry.currency} (${selectedCountry.currencySymbol})`
                         : globeMode === 'default' ? 'Click a country on the globe to explore'
+                        : globeMode === 'supplyChain' ? 'Click a golden node to view supply chain details'
+                        : globeMode === 'events' ? 'Click an event dot for details — arcs show event evolution'
+                        : globeMode === 'similarity' ? 'Purple arcs connect similar historical events'
                         : 'Interactive 3D globe'
                       }
                     </p>
