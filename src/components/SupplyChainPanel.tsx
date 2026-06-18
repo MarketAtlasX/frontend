@@ -32,7 +32,10 @@ function LinkRow({ link, index }: { link: SupplyChainLink; index: number }) {
     >
       <div className="flex items-center gap-1.5 text-xs mb-1">
         <span className="font-semibold dark:text-white text-gray-900">{link.fromCountry}</span>
-        <ArrowRight size={10} className="dark:text-gray-500 text-gray-400" />
+        <div className="flex items-center gap-0.5 dark:text-gray-500 text-gray-400">
+          <ArrowRight size={10} />
+          <span className="text-[8px] font-mono">→</span>
+        </div>
         <span className="font-semibold dark:text-white text-gray-900">{link.toCountry}</span>
         <div className="ml-auto flex items-center gap-1">
           <DollarSign size={10} className="dark:text-gray-500 text-gray-400" />
