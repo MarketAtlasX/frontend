@@ -99,6 +99,12 @@ function EventCard({
               <Clock size={9} />
               {new Date(event.timestamp).toLocaleDateString()}
             </span>
+            {consequences.length > 0 && (
+              <span className="flex items-center gap-1 ml-auto">
+                <ArrowRight size={9} className="dark:text-gray-400 text-gray-500" />
+                {consequences.length} impacts
+              </span>
+            )}
           </div>
 
           {consequences.length > 0 && (
