@@ -403,18 +403,19 @@ export default function GlobeView({
     return nodeCountries.map(code => {
       const c = countries.find(cc => cc.code === code)
       if (!c) return null
+      const isSelected = selectedCountry?.code === code
       return {
         lat: c.lat,
         lng: c.lng,
-        radius: 0.4,
-        color: '#f59e0b',
-        altitude: 0.04,
+        radius: isSelected ? 0.6 : 0.4,
+        color: isSelected ? '#ffaa00' : '#f59e0b',
+        altitude: isSelected ? 0.06 : 0.04,
         name: c.name,
         code: c.code,
         type: 'supplyChainNode' as const,
       }
     }).filter(Boolean)
-  }, [mode, activeLayers])
+  }, [mode, activeLayers, selectedCountry])
 
   const getEventEvolutionArcs = useCallback(() => {
     if (mode !== 'events' && mode !== 'similarity') return []
