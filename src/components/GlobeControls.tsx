@@ -50,14 +50,14 @@ export default function GlobeControls({
             <button
               key={m.mode}
               onClick={() => onModeChange(m.mode)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
                 active
-                  ? 'bg-white/20 text-white shadow-sm'
+                  ? 'bg-white/20 text-white shadow-sm shadow-white/10 scale-105'
                   : 'text-white/50 hover:text-white/80 hover:bg-white/10'
               }`}
               title={m.label}
             >
-              <Icon size={14} />
+              <Icon size={14} className={`transition-transform duration-300 ${active ? 'scale-110' : ''}`} />
               <span className="hidden sm:inline">{m.label}</span>
             </button>
           )
