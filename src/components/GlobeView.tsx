@@ -7,8 +7,8 @@ import { events, historicalEvents, getSimilarEvents } from '../data/events'
 import type { GeoEvent } from '../data/events'
 import { defaultGraph } from '../data/graphData'
 import type { GraphEdge } from '../data/graphData'
-import { getAllSupplyChainLinks } from '../data/supplyChains'
-import type { SupplyChainLink } from '../data/supplyChains'
+import { getAllSupplyChainLinks, supplyChainPaths } from '../data/supplyChains'
+import type { SupplyChainLink, SupplyChainPath } from '../data/supplyChains'
 import { worldStates, getRiskColor } from '../data/worldState'
 import { forecasts, getForecastAtDay } from '../data/forecasts'
 import type { GlobeMode, AgentMode } from './GlobeControls'
@@ -110,6 +110,7 @@ interface GlobeViewProps {
   selectedEvent?: GeoEvent | null
   onEventClick?: (event: GeoEvent) => void
   activeLayers: Record<string, boolean>
+  onSupplyChainClick?: (path: SupplyChainPath) => void
 }
 
 function findNearestCountry(lat: number, lng: number): Country | null {
@@ -141,7 +142,7 @@ function findNearestEvent(lat: number, lng: number): GeoEvent | null {
 export default function GlobeView({
   selectedCountry, onCountryClick, onOpenMap,
   mode, agentMode, forecastDay, selectedEvent, onEventClick,
-  activeLayers,
+  activeLayers, onSupplyChainClick,
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
@@ -393,6 +394,62 @@ export default function GlobeView({
     }))
   }, [mode, selectedEvent])
 
+  const getSupplyChainNodePoints = useCallback(() => {
+    if (mode !== 'supplyChain') return []
+
+    const nodeCountries = new Set<string>()
+    for (const p of supplyChainPaths) {
+      for (const l of p.links) {
+        nodeCountries.add(l.fromCountry)
+        nodeCountries.add(l.toCountry)
+      }
+    }
+
+    return Array.from(nodeCountries).map(code => {
+      const c = countries.find(cc => cc.code === code)
+      if (!c) return null
+      return {
+        lat: c.lat,
+        lng: c.lng,
+        radius: 0.4,
+        color: '#f59e0b',
+        altitude: 0.04,
+        name: c.name,
+        code: c.code,
+        type: 'supplyChainNode' as const,
+      }
+    }).filter(Boolean)
+  }, [mode])
+
+  const getEventEvolutionArcs = useCallback(() => {
+    if (mode !== 'events' && mode !== 'similarity') return []
+
+    const arcs: any[] = []
+    const processed = new Set<string>()
+
+    for (const evt of events) {
+      const similar = getSimilarEvents(evt)
+      for (const sim of similar) {
+        const key = [evt.id, sim.id].sort().join('-')
+        if (processed.has(key)) continue
+        processed.add(key)
+        arcs.push({
+          startLat: sim.lat,
+          startLng: sim.lng,
+          endLat: evt.lat,
+          endLng: evt.lng,
+          color: sim.isHistorical ? '#a855f760' : '#3b82f660',
+          dashLength: 0.15,
+          dashGap: 0.25,
+          dashAnimateTime: 5000,
+          stroke: sim.isHistorical ? 0.25 : 0.4,
+        })
+      }
+    }
+
+    return arcs
+  }, [mode])
+
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -458,6 +515,20 @@ export default function GlobeView({
           onEventClick(event)
           clickLockRef.current = false
           return
+        }
+      }
+
+      if (mode === 'supplyChain') {
+        const nearest = findNearestCountry(clickLat, clickLng)
+        if (nearest) {
+          const path = supplyChainPaths.find(p =>
+            p.links.some(l => l.fromCountry === nearest.code || l.toCountry === nearest.code)
+          )
+          if (path && onSupplyChainClick) {
+            onSupplyChainClick(path)
+            clickLockRef.current = false
+            return
+          }
         }
       }
 
@@ -528,7 +599,8 @@ export default function GlobeView({
       const portPts = buildPortPoints()
       const eventPts = getEventPoints()
       const hubPts = getHubPoints()
-      globe.pointsData([...portPts, ...eventPts, ...hubPts])
+      const supplyPts = getSupplyChainNodePoints()
+      globe.pointsData([...portPts, ...eventPts, ...hubPts, ...supplyPts])
       globe.pointLat('lat')
       globe.pointLng('lng')
       globe.pointColor('color')
@@ -542,6 +614,12 @@ export default function GlobeView({
             <b>${typeIcons[e.type] || '📌'} ${e.title}</b><br/>
             <span style="color:#aaa">Severity: ${e.severity}/10 · ${e.type}</span><br/>
             <span style="color:#666;font-size:10px">${e.description.substring(0, 100)}...</span>
+          </div>`
+        }
+        if (d.type === 'supplyChainNode') {
+          return `<div style="background:rgba(0,0,0,0.9);color:white;padding:8px 12px;border-radius:8px;font-size:11px;border:1px solid #f59e0b">
+            <b>🔗 ${d.name} (${d.code})</b><br/>
+            <span style="color:#f59e0b;font-size:10px">Supply Chain Node — click to view paths</span>
           </div>`
         }
         if (d.name) {
@@ -580,6 +658,7 @@ export default function GlobeView({
     }
     arcs.push(...getSupplyChainArcs())
     arcs.push(...getRiskArcs())
+    arcs.push(...getEventEvolutionArcs())
 
     if (selectedCountry && mode === 'default') {
       const relatedTrade = tradeRoutes.filter(
@@ -639,7 +718,7 @@ export default function GlobeView({
     buildCountryLabels, buildPortPoints, getEventPoints, getEventRings,
     getGraphArcs, getSupplyChainArcs, getRiskArcs,
     getWorldStatePoints, getForecastPoints, getHistoricalArcs,
-    getHubPoints, activeLayers,
+    getHubPoints, getSupplyChainNodePoints, getEventEvolutionArcs, activeLayers,
   ])
 
   return (
