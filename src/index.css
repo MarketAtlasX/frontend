@@ -88,6 +88,17 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
+/* Live indicator dot */
+@keyframes live-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
 /* Globe mode indicator */
 @keyframes pulse-ring {
   0% { opacity: 1; transform: scale(1); }
