@@ -73,10 +73,21 @@ function EventCard({
             {event.description}
           </p>
 
-          <div className="flex items-center gap-3 mt-2 text-[10px] dark:text-gray-500 text-gray-400">
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex-1 h-1 dark:bg-gray-700 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all"
+                style={{
+                  width: `${(event.severity / 10) * 100}%`,
+                  backgroundColor: event.severity >= 7 ? '#ef4444' : event.severity >= 5 ? '#f97316' : event.severity >= 3 ? '#eab308' : '#22c55e'
+                }}
+              />
+            </div>
+            <span className="text-[9px] font-mono dark:text-gray-400 text-gray-500">{event.severity}/10</span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] dark:text-gray-500 text-gray-400">
             <span className="flex items-center gap-1">
               <AlertTriangle size={9} />
-              Severity: {event.severity}/10
+              Severity
             </span>
             <span className="flex items-center gap-1">
               {event.sentiment === 'positive' ? <TrendingUp size={9} className="text-green-400" /> :
