@@ -266,3 +266,14 @@ export function getSupplyChainsForCountry(code: string): SupplyChainPath[] {
 export function getAllSupplyChainLinks(): SupplyChainLink[] {
   return supplyChainPaths.flatMap(p => p.links)
 }
+
+export function getSupplyChainCountries(): string[] {
+  const codes = new Set<string>()
+  for (const p of supplyChainPaths) {
+    for (const l of p.links) {
+      codes.add(l.fromCountry)
+      codes.add(l.toCountry)
+    }
+  }
+  return Array.from(codes)
+}

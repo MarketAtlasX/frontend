@@ -7,7 +7,7 @@ import { events, historicalEvents, getSimilarEvents } from '../data/events'
 import type { GeoEvent } from '../data/events'
 import { defaultGraph } from '../data/graphData'
 import type { GraphEdge } from '../data/graphData'
-import { getAllSupplyChainLinks, supplyChainPaths } from '../data/supplyChains'
+import { getAllSupplyChainLinks, supplyChainPaths, getSupplyChainCountries } from '../data/supplyChains'
 import type { SupplyChainLink, SupplyChainPath } from '../data/supplyChains'
 import { worldStates, getRiskColor } from '../data/worldState'
 import { forecasts, getForecastAtDay } from '../data/forecasts'
@@ -398,15 +398,9 @@ export default function GlobeView({
     if (mode !== 'supplyChain') return []
     if (activeLayers.supplyLabels === false) return []
 
-    const nodeCountries = new Set<string>()
-    for (const p of supplyChainPaths) {
-      for (const l of p.links) {
-        nodeCountries.add(l.fromCountry)
-        nodeCountries.add(l.toCountry)
-      }
-    }
+    const nodeCountries = getSupplyChainCountries()
 
-    return Array.from(nodeCountries).map(code => {
+    return nodeCountries.map(code => {
       const c = countries.find(cc => cc.code === code)
       if (!c) return null
       return {
