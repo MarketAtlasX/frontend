@@ -24,6 +24,11 @@ const typeColors: Record<string, string> = {
   military: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
 }
 
+const severityDot = (s: number) => {
+  const colors = ['bg-green-500', 'bg-green-500', 'bg-yellow-500', 'bg-yellow-500', 'bg-orange-500', 'bg-orange-500', 'bg-red-500', 'bg-red-500', 'bg-red-600', 'bg-red-700']
+  return `w-2 h-2 rounded-full ${colors[Math.min(s - 1, 9)]}`
+}
+
 function EventCard({
   event,
   isHistorical,
@@ -48,7 +53,10 @@ function EventCard({
       } ${onClick ? 'hover:dark:bg-gray-700/50 hover:bg-gray-200' : ''}`}
     >
       <div className="flex items-start gap-2">
-        <span className="text-base mt-0.5">{typeIcons[event.type] || '📌'}</span>
+        <div className="relative mt-0.5">
+          <span className="text-base">{typeIcons[event.type] || '📌'}</span>
+          <div className={`${severityDot(event.severity)} absolute -top-0.5 -right-0.5 ring-1 ring-gray-900`} />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold dark:text-white text-gray-900">{event.title}</span>
