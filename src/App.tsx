@@ -6,15 +6,18 @@ import CountryNav from './components/CountryNav'
 import CountryMarkets from './components/CountryMarkets'
 import SignalDashboard from './components/SignalDashboard'
 import EventTimeline from './components/EventTimeline'
+import EventEvolutionPanel from './components/EventEvolutionPanel'
 import MarketCharts from './components/MarketCharts'
 import ChatBot from './components/ChatBot'
 import GlobeControls from './components/GlobeControls'
 import type { GlobeMode, AgentMode } from './components/GlobeControls'
 import EventDetailPanel from './components/EventDetailPanel'
+import SupplyChainPanel from './components/SupplyChainPanel'
 import ExplainabilityPanel from './components/ExplainabilityPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import type { Country } from './data/countries'
 import type { GeoEvent } from './data/events'
+import type { SupplyChainPath } from './data/supplyChains'
 
 export default function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
@@ -25,6 +28,7 @@ export default function App() {
   const [forecastDay, setForecastDay] = useState(0)
   const [selectedEvent, setSelectedEvent] = useState<GeoEvent | null>(null)
   const [showExplainability, setShowExplainability] = useState<string | null>(null)
+  const [selectedSupplyChainPath, setSelectedSupplyChainPath] = useState<SupplyChainPath | null>(null)
   const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
     ports: true,
     labels: true,
@@ -63,6 +67,14 @@ export default function App() {
     setShowExplainability(null)
   }
 
+  const handleSupplyChainClick = (path: SupplyChainPath) => {
+    setSelectedSupplyChainPath(path)
+  }
+
+  const handleCloseSupplyChain = () => {
+    setSelectedSupplyChainPath(null)
+  }
+
   const handleLayerToggle = (layer: string) => {
     setActiveLayers(prev => ({ ...prev, [layer]: !prev[layer] }))
   }
@@ -93,6 +105,7 @@ export default function App() {
                   selectedEvent={selectedEvent}
                   onEventClick={handleEventClick}
                   activeLayers={activeLayers}
+                  onSupplyChainClick={handleSupplyChainClick}
                 />
 
                 {!showMapView && (
@@ -142,6 +155,15 @@ export default function App() {
                   />
                 )}
 
+                {selectedSupplyChainPath && (
+                  <div className="absolute top-4 right-4 z-30 w-96 bg-gray-900/95 backdrop-blur-md rounded-xl border border-gray-700/50 shadow-2xl overflow-hidden max-h-[80vh]">
+                    <SupplyChainPanel
+                      country={selectedCountry}
+                      onClose={handleCloseSupplyChain}
+                    />
+                  </div>
+                )}
+
                 {showExplainability && (
                   <ExplainabilityPanel
                     sourceId={showExplainability}
@@ -164,19 +186,30 @@ export default function App() {
 
           <div className="p-4 border-b dark:border-white/10 border-gray-200">
             <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
-              Signal Dashboard
+              {globeMode === 'supplyChain' ? 'Supply Chain Network' : 'Signal Dashboard'}
             </h3>
             <ErrorBoundary>
-              <SignalDashboard country={selectedCountry} />
+              {globeMode === 'supplyChain' && !selectedCountry ? (
+                <SupplyChainPanel country={null} />
+              ) : (
+                <SignalDashboard country={selectedCountry} />
+              )}
             </ErrorBoundary>
           </div>
 
           <div className="p-4 border-b dark:border-white/10 border-gray-200">
             <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
-              Event Timeline
+              {globeMode === 'events' || globeMode === 'similarity' ? 'Event Evolution' : 'Event Timeline'}
             </h3>
             <ErrorBoundary>
-              <EventTimeline country={selectedCountry} />
+              {globeMode === 'events' || globeMode === 'similarity' ? (
+                <EventEvolutionPanel
+                  country={selectedCountry}
+                  onEventClick={handleEventClick}
+                />
+              ) : (
+                <EventTimeline country={selectedCountry} />
+              )}
             </ErrorBoundary>
           </div>
 
