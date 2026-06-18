@@ -101,6 +101,19 @@ export default function GlobeControls({
         </div>
       )}
 
+      {mode === 'supplyChain' && (
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 shadow-2xl mt-1">
+          <button
+            onClick={() => onLayerToggle('supplyLabels')}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              layers.supplyLabels !== false ? 'text-amber-300' : 'text-white/40'
+            }`}
+          >
+            Labels
+          </button>
+        </div>
+      )}
+
       {mode === 'forecast' && (
         <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 shadow-2xl mt-1">
           <span className="text-[10px] text-white/40 mr-1">Forecast:</span>

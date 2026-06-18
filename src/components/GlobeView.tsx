@@ -396,6 +396,7 @@ export default function GlobeView({
 
   const getSupplyChainNodePoints = useCallback(() => {
     if (mode !== 'supplyChain') return []
+    if (activeLayers.supplyLabels === false) return []
 
     const nodeCountries = new Set<string>()
     for (const p of supplyChainPaths) {
@@ -419,7 +420,7 @@ export default function GlobeView({
         type: 'supplyChainNode' as const,
       }
     }).filter(Boolean)
-  }, [mode])
+  }, [mode, activeLayers])
 
   const getEventEvolutionArcs = useCallback(() => {
     if (mode !== 'events' && mode !== 'similarity') return []

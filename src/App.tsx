@@ -32,6 +32,7 @@ export default function App() {
   const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
     ports: true,
     labels: true,
+    supplyLabels: true,
   })
 
   const handleCountryClick = (country: Country) => {
